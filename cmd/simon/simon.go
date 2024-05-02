@@ -24,11 +24,15 @@ const (
 )
 
 func NewSimonCommand() *cobra.Command {
+
+	// NOTE: cobra.Command{...} instantiates a struct of cobra.Command. The "&" operator makes Go (1) instantiate the struct on the heap rather than the stack and (2)
+	// returns a pointer to the instantiated struct.
 	simonCmd := &cobra.Command{
 		Use:   "simon",
 		Short: "Simon is a simulator, which will simulate a cluster and simulate workload scheduling.",
 	}
 
+	// NOTE: the "." operator in go automatically dereferences a pointer, if it is used with a pointer.
 	simonCmd.AddCommand(
 		version.VersionCmd,
 		apply.ApplyCmd,

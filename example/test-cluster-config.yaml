@@ -1,10 +1,10 @@
-apiVersion: simon/v1alpha1
-kind: Config
+apiVersion: simon/v1alpha1 	# This specifies the version of the API that the configuration file is intended to be compatible with.
+kind: Config 			# This field specifies hat type of object this YAML file is defining. In this case, it’s defining a configuration object.
 metadata:
-  name: simon-paib-config
-spec:
+  name: simon-paib-config	# This is the name of the configuration object. Metadata provides additional data about the object, such as its name.
+spec:				# Specifications of the cluster
   cluster:
-    customConfig: example/test-cluster
+    customConfig: example/test-cluster	# This pecifies the cluster configuration, referencing a named configuration in the file "example/test-cluster".
   customConfig:
     shufflePod: false
     workloadTuningConfig:

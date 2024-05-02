@@ -1,6 +1,10 @@
+// This file declares the module path, which should correspond to the repository URL. If go.mod says module github.com/hkust-adsl/kubernetes-scheduler-simulator, 
+// Go understands that it's working within that module's context.
 module github.com/hkust-adsl/kubernetes-scheduler-simulator
 
+
 go 1.15
+
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
@@ -27,6 +31,7 @@ require (
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/yaml v1.2.0
 )
+
 
 replace (
 	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
