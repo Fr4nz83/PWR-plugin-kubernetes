@@ -32,13 +32,16 @@ func NewSimonCommand() *cobra.Command {
 		Short: "Simon is a simulator, which will simulate a cluster and simulate workload scheduling.",
 	}
 
+	// Add the cobra commands defined in the other packages within "./cmd".
 	// NOTE: the "." operator in go automatically dereferences a pointer, if it is used with a pointer.
-	simonCmd.AddCommand(
-		version.VersionCmd,
-		apply.ApplyCmd,
-		doc.GenDoc.DocCmd,
-	)
+	simonCmd.AddCommand(version.VersionCmd,
+			    apply.ApplyCmd,
+			    doc.GenDoc.DocCmd,)
+	
+	// NOTE: cliflag.WordSepNormalizeFunc is a function provided by the cliflag packagethat normalizes flag names from camelCase to words separated by dashes.
+	// When users run, e.g., simon apply --num-iterations 5, the normalization function ensures that numIterations is correctly recognized as the flag numIterations.   
 	simonCmd.SetGlobalNormalizationFunc(cliflag.WordSepNormalizeFunc)
+	// Note: This line adds all Go flags from the goflag.CommandLine flag set to the flags of the simonCmd command.
 	simonCmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	simonCmd.DisableAutoGenTag = true
 

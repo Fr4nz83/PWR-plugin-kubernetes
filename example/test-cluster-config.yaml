@@ -4,7 +4,7 @@ metadata:
   name: simon-paib-config	# This is the name of the configuration object. Metadata provides additional data about the object, such as its name.
 spec:				# Specifications of the cluster
   cluster:
-    customConfig: example/test-cluster	# This pecifies the cluster configuration, referencing a named configuration in the file "example/test-cluster".
+    customConfig: example/test-cluster	# This specifies the cluster configuration, referencing a named configuration in the file "example/test-cluster".
   customConfig:
     shufflePod: false
     workloadTuningConfig:

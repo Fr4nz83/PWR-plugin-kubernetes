@@ -26,6 +26,12 @@ import (
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
 )
 
+
+
+// ******************************************************************************
+// PACKAGE PUBLIC RESOURCES, INTERFACES, STRUCTS, RECEIVER METHODS, and FUNCTIONS
+// ******************************************************************************
+
 type Options struct {
 	SimonConfig                string
 	DefaultSchedulerConfigFile string
@@ -48,21 +54,33 @@ type Interface interface {
 	Run() error
 }
 
+
+
 // NewApplier returns a default applier that has passed the validity test
 func NewApplier(opts Options) Interface {
 	simonCR := &v1alpha1.Simon{}
+	
+	fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Options: %+v\n", opts)
+	fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Simon (1): %+v\n", simonCR)
+	
+	// Read Simon's YAML config file.
 	configFile, err := ioutil.ReadFile(opts.SimonConfig)
 	if err != nil {
 		log.Fatalf("failed to read config file(%s): %v", opts.SimonConfig, err)
 	}
+	
+	// Unmarshal Simon's config file from YAML to JSON.
 	configJSON, err := yaml.YAMLToJSON(configFile)
 	if err != nil {
 		log.Fatalf("failed to unmarshal config file(%s) to json: %v", opts.SimonConfig, err)
 	}
 
+	// Unmarshal Simon's config file from JSON to object (simonCR in this case).
 	if err := json.Unmarshal(configJSON, simonCR); err != nil {
 		log.Fatalf("failed to unmarshal config json to object: %v", err)
 	}
+	fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Simon (2): %+v\n", simonCR)
+
 
 	applier := &Applier{
 		cluster:           simonCR.Spec.Cluster,
@@ -73,7 +91,12 @@ func NewApplier(opts Options) Interface {
 		interactive:       opts.Interactive,
 		extendedResources: opts.ExtendedResources,
 	}
+	
+	fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Applier: %+v\n", applier)
 
+
+	// Check if the information in the instantiated applier (e.g., simulating the orchestration of applications on a Kubernetes cluster) is correct. 
+	// More precisely, check if the cluster configuration, pods, and scheduler configuration passed by the user are correct.  
 	if err := validate(applier); err != nil {
 		fmt.Printf("%v", err)
 		os.Exit(1)
@@ -82,6 +105,8 @@ func NewApplier(opts Options) Interface {
 	return applier
 }
 
+
+// This function executes an applier.
 func (applier *Applier) Run() (err error) {
 	var (
 		resourceMap  map[string]simulator.ResourceTypes
@@ -157,7 +182,9 @@ func (applier *Applier) Run() (err error) {
 		})
 	}
 
-	// Run the simulator
+
+
+	// *** Run the simulator *** //
 	success := false
 	var result *simontype.SimulateResult
 	result, err = simulator.Simulate(clusterResource, selectedResourceList, simulator.WithSchedulerConfig(applier.schedulerConfig), simulator.WithKubeConfig(applier.cluster.KubeConfig), simulator.WithCustomConfig(applier.customConfig))
@@ -193,6 +220,12 @@ func (applier *Applier) Run() (err error) {
 	return nil
 }
 
+
+
+// *************************
+// PACKAGE PRIVATE FUNCTIONS
+// *************************
+
 func validate(applier *Applier) error {
 	fmt.Printf("cluster.KubeConfig=%s\n", applier.cluster.KubeConfig)
 	fmt.Printf("cluster.CustomCluster=%s\n", applier.cluster.CustomCluster)
@@ -227,6 +260,7 @@ func validate(applier *Applier) error {
 
 	return nil
 }
+
 
 // report print out scheduling result of pods
 func report(nodeStatuses []simontype.NodeStatus, extendedResources []string) {
