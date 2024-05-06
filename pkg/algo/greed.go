@@ -7,6 +7,8 @@ import (
 )
 
 // GreedQueue is used to sort pods by Greed Algo
+// NOTE:  This struct represents the scheduling queue sorted according to the Greed Algorithm. It contains the list of pods (pods)
+//        and the total available resources (totalResource) in the cluster.
 type GreedQueue struct {
 	pods          []*corev1.Pod
 	totalResource corev1.ResourceList
@@ -18,14 +20,19 @@ func NewGreedQueue(nodes []corev1.Node, pods []*corev1.Pod) *GreedQueue {
 		corev1.ResourceCPU:    *resource.NewQuantity(0, resource.DecimalSI),
 		corev1.ResourceMemory: *resource.NewQuantity(0, resource.DecimalSI),
 	}
+	
+	// Compute the overall and allocatable resources for each node in the cluster.
 	for _, node := range nodes {
 		cpu := totalResource[corev1.ResourceCPU]
 		memory := totalResource[corev1.ResourceMemory]
+		
 		cpu.Add(*node.Status.Allocatable.Cpu())
 		memory.Add(*node.Status.Allocatable.Memory())
+		
 		totalResource[corev1.ResourceCPU] = cpu
 		totalResource[corev1.ResourceMemory] = memory
 	}
+	
 	return &GreedQueue{
 		totalResource: totalResource,
 		pods:          pods,
@@ -35,13 +42,13 @@ func NewGreedQueue(nodes []corev1.Node, pods []*corev1.Pod) *GreedQueue {
 func (greed *GreedQueue) Len() int      { return len(greed.pods) }
 func (greed *GreedQueue) Swap(i, j int) { greed.pods[i], greed.pods[j] = greed.pods[j], greed.pods[i] }
 func (greed *GreedQueue) Less(i, j int) bool {
-	// DRF算法: 在调度时，让具有最低资源占用比例的任务具有高优先级
-	// 若用DRF算法, 反而不是最优解
-	// Pod with nodeName should have higher priority to be scheduled
+	// Pods with a specified nodeName (i.e., already assigned to a node) are given the highest priority (return true), 
+	// ensuring they are not rescheduled unnecessarily.
 	if len(greed.pods[i].Spec.NodeName) != 0 {
 		return true
 	} else if len(greed.pods[j].Spec.NodeName) != 0 {
 		return false
+	// If both pods must be scheduled on a specific nodeName, then give priority to the one consuming less resources. 
 	} else {
 		return greed.calculatePodShare(greed.pods[i]) > greed.calculatePodShare(greed.pods[j])
 	}
