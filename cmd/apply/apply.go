@@ -26,7 +26,7 @@ var ApplyCmd = &cobra.Command{
 func init() {
 	
 	// NOTE: Flags() is a method of cobra.Command that returns the complete FlagSet that applies to this command (local and persistent declared here and by all parents).
-	// Here we add the flags, contained within "ApplyCmd.Flags()" FlagSet struct, specific to the "apply" command.
+	// Here we bind the flags to the various fields within options, which are exposed via the "ApplyCmd.Flags()" FlagSet struct, specific to the "apply" command.
 	
 	ApplyCmd.Flags().StringVarP(&options.SimonConfig, "simon-config", "f", options.SimonConfig, "path to the cluster kube-config file used to connect cluster, one of both kube-config and cluster-config must exist.")
 	ApplyCmd.Flags().StringVarP(&options.DefaultSchedulerConfigFile, "default-scheduler-config", "s", options.DefaultSchedulerConfigFile, "path to JSON or YAML file containing scheduler configuration.")

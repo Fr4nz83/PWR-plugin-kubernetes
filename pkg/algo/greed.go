@@ -48,7 +48,8 @@ func (greed *GreedQueue) Less(i, j int) bool {
 		return true
 	} else if len(greed.pods[j].Spec.NodeName) != 0 {
 		return false
-	// If both pods must be scheduled on a specific nodeName, then give priority to the one consuming less resources. 
+	// If both pods must be scheduled on a specific nodeName, then give priority to the one consuming less resources
+	// (here the lesser one is the pod consuming more resources). 
 	} else {
 		return greed.calculatePodShare(greed.pods[i]) > greed.calculatePodShare(greed.pods[j])
 	}

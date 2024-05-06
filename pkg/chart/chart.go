@@ -1,3 +1,25 @@
+// In Kubernetes, a "chart" typically refers to a package of pre-configured Kubernetes resources that can be easily deployed onto a Kubernetes cluster. 
+// Charts are used specifically within the context of Helm, which is a package manager for Kubernetes. Helm charts encapsulate all the necessary Kubernetes
+// manifests, configurations, and dependencies needed to deploy a particular application or service.
+
+// Here are some key points about Helm charts and their usage in Kubernetes:
+
+// 1) Packaged Resources: A Helm chart is a collection of files organized into a specific directory structure. These files include Kubernetes manifest files (YAML), 
+//    templates, configuration files, and any other resources required by the application.
+// 2) Templating: Helm supports templating using the Go template language. Templates allow users to parameterize their Kubernetes manifests, making
+//    them more flexible and reusable. Users can define values that can be dynamically substituted into the manifest files during deployment.
+// 3) Dependency Management: Helm charts can have dependencies on other charts. Helm automatically manages these dependencies, making it easier to 
+//    package and distribute complex applications composed of multiple components.
+// 4) Versioning and Release Management: Helm provides versioning and release management features, allowing users to manage different versions 
+//    of their applications and perform upgrades and rollbacks easily.
+// 5) Repository: Helm charts can be published to and retrieved from chart repositories. Public repositories like the official Helm Hub or private 
+//    repositories can be used to share and distribute charts across teams and organizations.
+
+// Overall, Helm charts simplify the process of deploying and managing applications on Kubernetes by providing a standardized way to package, version, 
+// and distribute Kubernetes resources and configurations. They promote best practices for application deployment and infrastructure management in Kubernetes environments.
+
+// NOTE: not really sure if Helm charts are relevant to the simulator. To be checked.
+
 package chart
 
 import (

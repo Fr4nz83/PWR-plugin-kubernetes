@@ -87,6 +87,7 @@ var defaultSimulatorOptions = simulatorOptions{
 // New generates all components that will be needed to simulate scheduling and returns a complete simulator
 func New(opts ...Option) (Interface, error) {
 	var err error
+	
 	// configure a simulator by opts
 	options := defaultSimulatorOptions
 	for _, opt := range opts {

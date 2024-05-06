@@ -80,17 +80,22 @@ type Interface interface {
 // 1. UnscheduledPods - represents unscheduled Pods. If the value is empty, it means that the simulation scheduling was successful.
 // 2. NodeStatus - will record the Pod situation on each Node in detail.
 func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simontype.SimulateResult, error) {
+	
 	// init simulator
 	sim, err := New(opts...)
 	if err != nil {
 		return nil, err
 	}
+	
+	// This line defers the execution of the Close method of the sim object until the surrounding function returns.
 	defer sim.Close()
 
+	// TODO: Arrivato qua!
 	cluster.Pods, err = GetValidPodExcludeDaemonSet(cluster)
 	if err != nil {
 		return nil, err
 	}
+
 
 	log.Infof("Number of original workload pods: %d", len(cluster.Pods))
 	sim.SetWorkloadPods(cluster.Pods)
