@@ -86,11 +86,13 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	if err != nil {
 		return nil, err
 	}
+	// TODO: arrivato qua in core.go. Ora dentro simulator.go.
+	
 	
 	// This line defers the execution of the Close method of the sim object until the surrounding function returns.
 	defer sim.Close()
 
-	// TODO: Arrivato qua!
+
 	cluster.Pods, err = GetValidPodExcludeDaemonSet(cluster)
 	if err != nil {
 		return nil, err

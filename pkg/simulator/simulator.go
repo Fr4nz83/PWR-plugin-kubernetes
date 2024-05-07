@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"context"
+	"os"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -88,40 +89,60 @@ var defaultSimulatorOptions = simulatorOptions{
 func New(opts ...Option) (Interface, error) {
 	var err error
 	
-	// configure a simulator by opts
+	
+	// Recall that opts is a slice of objects of type Option (see above), i.e., functions that takes in input a struct of type simulatorOptions.
+	// The arguments to these functions are passed in ./pkg/simulator/core.go.
+	// Below we are thus executing these functions, i.e., opt(&options), whose input parameters have been passed in .pkg/simulator/core.go, each initializing a 
+	// field of the instantiated simulatorOptions struct (i.e., options).  
 	options := defaultSimulatorOptions
+	fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 	for _, opt := range opts {
 		opt(&options)
 	}
+	fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 
-	// get scheduler config and set the list of scheduler bind plugins to the simulator
+
+	// Get scheduler config and set the list of scheduler bind plugins to the simulator.
+	// Here we unmarshal the content within the YAML file pointed by "options.schedulerConfig" in the field "kubeSchedulerConfig".
+	// This function sets up various scheduler plugins and configurations within the scheduler configuration. It initializes the 
+	// Kubernetes scheduler with the specified configuration options.
 	kubeSchedulerConfig, err := GetAndSetSchedulerConfig(options.schedulerConfig)
 	if err != nil {
 		return nil, err
 	}
 	displaySchedulerConfig(kubeSchedulerConfig)
 
+
 	// create a real/fake client
+	// NOTE: the fake client is used in the case a simulation is done.
 	var client externalclientset.Interface
 	if options.kubeconfig != "" {
+		fmt.Printf("DEBUG FRA simulator.New(): creating real client.\n")
 		varConfig, err := clientcmd.BuildConfigFromFlags("", options.kubeconfig)
 		if err != nil {
 			log.Errorf("%s\n", err.Error())
 		}
 		client, err = externalclientset.NewForConfig(varConfig)
 	} else {
+		// NOTE: the fake client's implementation comes from a Kubernetes Go library, see the imports.
+		fmt.Printf("DEBUG FRA simulator.New(): creating fake client for the simulation.\n")
 		client = fakeclientset.NewSimpleClientset()
 	}
 	kubeSchedulerConfig.Client = client
+	
+	
+	// After creating the client, the code initializes a shared informer factory using the client. Shared informers are used to 
+	// watch Kubernetes resources for changes and are commonly used in Kubernetes controllers and operators to react to changes in the cluster.
 	sharedInformerFactory := informers.NewSharedInformerFactory(client, 0)
+	
 
-	// create a simulator
+
+	// *** create a simulator *** //
 	ctx, cancel := context.WithCancel(context.Background())
 	storagev1Informers := sharedInformerFactory.Storage().V1()
 	scInformer := storagev1Informers.StorageClasses().Informer()
 	sharedInformerFactory.Start(ctx.Done())
 	cache.WaitForCacheSync(ctx.Done(), scInformer.HasSynced)
-
 	sim := &Simulator{
 		client:          client,
 		informerFactory: sharedInformerFactory,
@@ -129,6 +150,12 @@ func New(opts ...Option) (Interface, error) {
 		cancelFunc:      cancel,
 		customConfig:    options.customConfig,
 	}
+	
+	
+	// TODO: arrivato qua in simulator.go.
+	fmt.Printf("DEBUG FRA simulator.New(): exiting the app!\n")
+	os.Exit(0)
+
 
 	// create a scheduler
 	bindRegistry := frameworkruntime.Registry{
@@ -177,6 +204,7 @@ func New(opts ...Option) (Interface, error) {
 	return sim, nil
 }
 
+
 // RunCluster with real client in a production cluster or fake client in a simulated cluster.
 func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.UnscheduledPod, error) {
 	// start scheduler
@@ -191,6 +219,7 @@ func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.Unscheduled
 		return nil, fmt.Errorf("unknown client type: %T", t)
 	}
 }
+
 
 func (sim *Simulator) ScheduleApp(apps AppResource) ([]simontype.UnscheduledPod, error) {
 	// 由 AppResource 生成 Pods
@@ -207,9 +236,11 @@ func (sim *Simulator) ScheduleApp(apps AppResource) ([]simontype.UnscheduledPod,
 	return failedPod, nil
 }
 
+
 func (sim *Simulator) GetCustomConfig() v1alpha1.CustomConfig {
 	return sim.customConfig
 }
+
 
 func (sim *Simulator) GetClusterNodeStatus() []simontype.NodeStatus {
 	var nodeStatues []simontype.NodeStatus
@@ -243,6 +274,7 @@ func (sim *Simulator) GetClusterNodeStatus() []simontype.NodeStatus {
 	return nodeStatues
 }
 
+
 // runScheduler
 func (sim *Simulator) runScheduler() {
 	// Step 1: start all informers.
@@ -254,6 +286,7 @@ func (sim *Simulator) runScheduler() {
 		sim.scheduler.Run(sim.ctx)
 	}()
 }
+
 
 func (sim *Simulator) createPod(p *corev1.Pod) error {
 	if _, err := sim.client.CoreV1().Pods(p.Namespace).Create(sim.ctx, p, metav1.CreateOptions{}); err != nil {
@@ -273,6 +306,7 @@ func (sim *Simulator) createPod(p *corev1.Pod) error {
 	}
 	return nil
 }
+
 
 func (sim *Simulator) deletePod(p *corev1.Pod) error {
 	pod, _ := sim.client.CoreV1().Pods(p.Namespace).Get(sim.ctx, p.Name, metav1.GetOptions{})
@@ -299,6 +333,7 @@ func (sim *Simulator) deletePod(p *corev1.Pod) error {
 	return nil
 }
 
+
 func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 	err := sim.createPod(pod)
 	if err != nil || sim.isPodUnscheduled(pod.Namespace, pod.Name) {
@@ -309,6 +344,7 @@ func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 	}
 	return nil
 }
+
 
 func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPod {
 	var failedPods []simontype.UnscheduledPod
@@ -344,14 +380,17 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 	return failedPods
 }
 
+
 func (sim *Simulator) Close() {
 	sim.cancelFunc()
 }
+
 
 func (sim *Simulator) isPodScheduled(ns, name string) bool {
 	pod, _ := sim.client.CoreV1().Pods(ns).Get(sim.ctx, name, metav1.GetOptions{})
 	return pod != nil && pod.Spec.NodeName != ""
 }
+
 
 func (sim *Simulator) isPodUnscheduled(ns, name string) bool {
 	pod, _ := sim.client.CoreV1().Pods(ns).Get(sim.ctx, name, metav1.GetOptions{})
@@ -366,19 +405,23 @@ func (sim *Simulator) isPodUnscheduled(ns, name string) bool {
 	return false
 }
 
+
 func (sim *Simulator) isPodCreated(ns, name string) bool {
 	return sim.isPodScheduled(ns, name) || sim.isPodUnscheduled(ns, name)
 }
+
 
 func (sim *Simulator) isPodDeleted(ns, name string) bool {
 	pod, _ := sim.client.CoreV1().Pods(ns).Get(sim.ctx, name, metav1.GetOptions{})
 	return pod == nil || (pod.Namespace == "" && pod.Name == "")
 }
 
+
 func (sim *Simulator) isNodeCreated(name string) bool {
 	node, _ := sim.client.CoreV1().Nodes().Get(sim.ctx, name, metav1.GetOptions{})
 	return node != nil
 }
+
 
 func (sim *Simulator) isPodFoundInNodeGpuAnno(node *corev1.Node, p *corev1.Pod) bool {
 	gpuNodeInfoStr, err := utils.GetGpuNodeInfoFromAnnotation(node)
@@ -399,6 +442,7 @@ func (sim *Simulator) isPodFoundInNodeGpuAnno(node *corev1.Node, p *corev1.Pod) 
 	return false
 }
 
+
 func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
 	for {
 		if sim.isPodCreated(ns, name) {
@@ -407,6 +451,7 @@ func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
 		time.Sleep(d)
 	}
 }
+
 
 func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
 	for {
@@ -418,6 +463,7 @@ func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
 	}
 	time.Sleep(d)
 }
+
 
 func (sim *Simulator) syncNodeUpdateOnPodCreate(nodeName string, p *corev1.Pod, d time.Duration) {
 	for {
@@ -441,6 +487,7 @@ func (sim *Simulator) syncNodeUpdateOnPodCreate(nodeName string, p *corev1.Pod, 
 	}
 }
 
+
 func (sim *Simulator) syncNodeUpdateOnPodDelete(nodeName string, p *corev1.Pod, d time.Duration) {
 	for {
 		node, _ := sim.client.CoreV1().Nodes().Get(sim.ctx, nodeName, metav1.GetOptions{})
@@ -462,6 +509,7 @@ func (sim *Simulator) syncNodeUpdateOnPodDelete(nodeName string, p *corev1.Pod, 
 	}
 }
 
+
 func (sim *Simulator) syncNodeCreate(name string, d time.Duration) {
 	for {
 		if sim.isNodeCreated(name) {
@@ -472,6 +520,7 @@ func (sim *Simulator) syncNodeCreate(name string, d time.Duration) {
 	log.Debugf("node(%s) has been successfully created\n", name)
 	time.Sleep(d) // sleep for a while to avoid event channel full
 }
+
 
 // syncClusterResourceList: 1) load Pods into creation and deletion events. 2) schedule and delete these existing Pods.
 func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]simontype.UnscheduledPod, error) {
@@ -599,12 +648,14 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 	return failedPods, nil
 }
 
+
 // WithKubeConfig sets kubeconfig for Simulator, the default value is ""
 func WithKubeConfig(kubeconfig string) Option {
 	return func(o *simulatorOptions) {
 		o.kubeconfig = kubeconfig
 	}
 }
+
 
 // WithSchedulerConfig sets schedulerConfig for Simulator, the default value is ""
 func WithSchedulerConfig(schedulerConfig string) Option {
@@ -613,11 +664,13 @@ func WithSchedulerConfig(schedulerConfig string) Option {
 	}
 }
 
+
 func WithCustomConfig(customConfig v1alpha1.CustomConfig) Option {
 	return func(o *simulatorOptions) {
 		o.customConfig = customConfig
 	}
 }
+
 
 // CreateClusterResourceFromClient returns a ResourceTypes struct by kube-client that connects a real cluster
 func CreateClusterResourceFromClient(client externalclientset.Interface) (ResourceTypes, error) {
@@ -752,6 +805,7 @@ func CreateClusterResourceFromClient(client externalclientset.Interface) (Resour
 	return resource, nil
 }
 
+
 // CreateClusterResourceFromClusterConfig return a ResourceTypes struct based on the cluster config
 func CreateClusterResourceFromClusterConfig(path string) (ResourceTypes, error) {
 	var resource ResourceTypes
@@ -770,6 +824,7 @@ func CreateClusterResourceFromClusterConfig(path string) (ResourceTypes, error) 
 	return resource, nil
 }
 
+
 func ownedByDeployment(refs []metav1.OwnerReference) bool {
 	for _, ref := range refs {
 		if ref.Kind == simontype.Deployment {
@@ -778,6 +833,7 @@ func ownedByDeployment(refs []metav1.OwnerReference) bool {
 	}
 	return false
 }
+
 
 func ownedByCronJob(refs []metav1.OwnerReference) bool {
 	for _, ref := range refs {
@@ -788,6 +844,7 @@ func ownedByCronJob(refs []metav1.OwnerReference) bool {
 	return false
 }
 
+
 func getPodfromPodMap(podKeys []string, podMap map[string]*corev1.Pod) []*corev1.Pod {
 	var podList []*corev1.Pod
 	for _, podKey := range podKeys {
@@ -796,6 +853,7 @@ func getPodfromPodMap(podKeys []string, podMap map[string]*corev1.Pod) []*corev1
 	}
 	return podList
 }
+
 
 func (sim *Simulator) getNodeFragAmountList(nodeStatus []simontype.NodeStatus) []utils.FragAmount {
 	nodeResourceMap := utils.GetNodeResourceMap(nodeStatus)
@@ -811,6 +869,7 @@ func (sim *Simulator) getNodeFragAmountList(nodeStatus []simontype.NodeStatus) [
 	return nodeFragAmountList
 }
 
+
 func (sim *Simulator) getCurrentPodMap() map[string]*corev1.Pod {
 	podMap := make(map[string]*corev1.Pod)
 	podList, _ := sim.client.CoreV1().Pods(metav1.NamespaceAll).List(sim.ctx, metav1.ListOptions{})
@@ -819,6 +878,7 @@ func (sim *Simulator) getCurrentPodMap() map[string]*corev1.Pod {
 	}
 	return podMap
 }
+
 
 func (sim *Simulator) SetWorkloadPods(pods []*corev1.Pod) {
 	sim.workloadPods = []*corev1.Pod{}
@@ -840,6 +900,7 @@ func (sim *Simulator) SetWorkloadPods(pods []*corev1.Pod) {
 		return sim.workloadPods[i].Name < sim.workloadPods[j].Name
 	})
 }
+
 
 func (sim *Simulator) SortClusterPods(pods []*corev1.Pod) {
 	var err error
@@ -879,6 +940,7 @@ func (sim *Simulator) SortClusterPods(pods []*corev1.Pod) {
 	}
 }
 
+
 func (sim *Simulator) RunWorkloadInflationEvaluation(tag string) {
 	// 1. Generate a batch of inflation pods
 	inflationPods := sim.generateWorkloadInflationPods()
@@ -902,6 +964,7 @@ func (sim *Simulator) RunWorkloadInflationEvaluation(tag string) {
 		}
 	}
 }
+
 
 func (sim *Simulator) generateWorkloadInflationPods() []*corev1.Pod {
 	n := len(sim.workloadPods)
@@ -998,6 +1061,7 @@ func (sim *Simulator) generateWorkloadInflationPods() []*corev1.Pod {
 	return nil
 }
 
+
 func displaySchedulerConfig(config *config.CompletedConfig) {
 	profiles := config.ComponentConfig.Profiles
 	if profiles == nil || len(profiles) < 1 {
@@ -1064,6 +1128,7 @@ func displaySchedulerConfig(config *config.CompletedConfig) {
 	}
 }
 
+
 // TunePodsByNodeTotalResource prune or append pods to match the cfg.Ratio * (cluster_GPU_capacity)
 func (sim *Simulator) TunePodsByNodeTotalResource(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
 	if sim.podTotalMilliCpuReq <= 0 {
@@ -1099,9 +1164,11 @@ func (sim *Simulator) TunePodsByNodeTotalResource(pods []*corev1.Pod, cfg v1alph
 	}
 }
 
+
 func RemovePodsByIndex(s []*corev1.Pod, index int) []*corev1.Pod {
 	return append(s[:index], s[index+1:]...)
 }
+
 
 func (sim *Simulator) tuneDownPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
 	tuneRatio := cfg.Ratio
@@ -1118,6 +1185,7 @@ func (sim *Simulator) tuneDownPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuni
 	}
 	return pods
 }
+
 
 func (sim *Simulator) tuneUpPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
 	tuneRatio := cfg.Ratio

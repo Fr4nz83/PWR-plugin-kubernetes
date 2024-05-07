@@ -206,26 +206,30 @@ func (applier *Applier) Run() (err error) {
 			Resource: resourceMap[name],
 		})
 	}
-
+	
+	
+	// fmt.Printf("DEBUG FRA: clusterResource content: %+v\n", clusterResource)
+	// fmt.Printf("DEBUG FRA: clusterResource content: %+v\n", selectedResourceList)
 
 
 	// *** Run the simulator *** //
 	// NOTE: Simulate() represents the entry point to the simulator.
 	// NOTE 2: Simulate() comes from ./pkg/simulator/core.go
+	// NOTE 3: clusterResource, when running with the YAMLs from the example, actually contains all the information related to nodes and pods.
+	//	   selectedResourceList is empty (maybe it is used during the simulation? To be checked).
+	// NOTE 4: simulator.With* are wrapper functions that take some configuration contained in a string and return an object of type Option, i.e., a function. 
+	// 	   They get executed when called within Simulate(). See also ./pkg/simulator/simulator.go. 
 	success := false
 	var result *simontype.SimulateResult
 	result, err = simulator.Simulate(clusterResource,
 					 selectedResourceList,
-					 simulator.WithSchedulerConfig(applier.schedulerConfig), // This is a function passed as input parameter. See ./pkg/simulator/simulator.go
-					 simulator.WithKubeConfig(applier.cluster.KubeConfig), // This is a function passed as input parameter. See ./pkg/simulator/simulator.go
-					 simulator.WithCustomConfig(applier.customConfig)) // This is a function passed as input parameter. See ./pkg/simulator/simulator.go
+					 simulator.WithSchedulerConfig(applier.schedulerConfig), // Parse the configuration of the scheduler.
+					 simulator.WithKubeConfig(applier.cluster.KubeConfig), // Ignored when using the simulator.
+					 simulator.WithCustomConfig(applier.customConfig)) // Parse the configuration of the simulated cluster and workload.
 					 
-					 
-	fmt.Printf("DEBUG FRA: terminating the app via os.Exit(0)!\n")
-	os.Exit(0)
 	
 					 
-	// Check how the simulator ended its execution.
+	// *** Check how the simulator ended its execution *** //
 	if err != nil {
 		return err
 	}
