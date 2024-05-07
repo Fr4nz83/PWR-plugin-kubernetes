@@ -212,6 +212,7 @@ func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.Unscheduled
 	// start scheduler
 	sim.runScheduler()
 
+	// Example of Go type assertion with type switch.
 	switch t := sim.client.(type) {
 	case *externalclientset.Clientset:
 		return nil, nil

@@ -138,6 +138,7 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	}
 
 
+	// IMPORTANT: RunCluster(), which comes from ./pkg/simulator/simulator.go, seems to be the most important method of the simulator, the one actually running the simulation.
 	fmt.Printf("DEBUG FRA, simulate.Simulate(): executing RunCluster().\n")
 	var failedPods []simontype.UnscheduledPod
 	unscheduledPods, err := sim.RunCluster(cluster) // Existing pods in the cluster are scheduled here.
