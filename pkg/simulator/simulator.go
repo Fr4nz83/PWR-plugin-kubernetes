@@ -2,7 +2,6 @@ package simulator
 
 import (
 	"context"
-	"os"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -137,7 +136,7 @@ func New(opts ...Option) (Interface, error) {
 	
 
 
-	// *** create a simulator *** //
+	// *** Instantiate a Simulator object *** //
 	ctx, cancel := context.WithCancel(context.Background())
 	storagev1Informers := sharedInformerFactory.Storage().V1()
 	scInformer := storagev1Informers.StorageClasses().Informer()
@@ -150,14 +149,13 @@ func New(opts ...Option) (Interface, error) {
 		cancelFunc:      cancel,
 		customConfig:    options.customConfig,
 	}
-	
-	
-	// TODO: arrivato qua in simulator.go.
-	fmt.Printf("DEBUG FRA simulator.New(): exiting the app!\n")
-	os.Exit(0)
 
 
-	// create a scheduler
+
+	// From https://pkg.go.dev/k8s.io/kubernetes/pkg/scheduler/framework/runtime#Registry
+	// Registry is a collection of all available plugins. It is an alias for the type "map[string]PluginFactory". 
+	// The framework uses a registry to enable and initialize configured plugins. All plugins must be in the registry before initializing the framework.
+	// NOTE: all the possible scoring plugins are binded here. Notice that GPU-related scoring functions have an extra parameter.
 	bindRegistry := frameworkruntime.Registry{
 		simontype.SimonPluginName: func(configuration runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 			return simonplugin.NewSimonPlugin(configuration, handle)
@@ -184,6 +182,10 @@ func New(opts ...Option) (Interface, error) {
 			return simonplugin.NewFGDScorePlugin(configuration, handle, &sim.typicalPods)
 		},
 	}
+	
+	
+	// The code below appears to set up the simulator's scheduler framework, specifying the various plugins.
+	// NOTE: scheduler.New() comes from the package "k8s.io/kubernetes/pkg/scheduler"
 	sim.scheduler, err = scheduler.New(
 		sim.client,
 		sim.informerFactory,
@@ -885,6 +887,7 @@ func (sim *Simulator) SetWorkloadPods(pods []*corev1.Pod) {
 	for _, p := range pods {
 		pod := MakePodUnassigned(p.DeepCopy())
 		if pod.Spec.NodeSelector != nil {
+			// "delete" is a native Go function used to remove an entry from a map.
 			delete(pod.Spec.NodeSelector, simontype.HostName)
 			delete(pod.Spec.NodeSelector, simontype.NodeIp)
 		}
