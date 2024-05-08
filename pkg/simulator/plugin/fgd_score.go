@@ -51,6 +51,7 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	// If pod overhead is non-nil, the pod overhead is added to the total container resource requests and to the 
 	// total container limits which have a non-zero quantity.
 	if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
+		fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => the pod does not request any resource!\n")
 		return framework.MaxNodeScore, framework.NewStatus(framework.Success)
 	}
 
@@ -73,7 +74,7 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	}
 
 
-	// Step 4 - 
+	// Step 4 - ...
 	score, _ := calculateGpuShareFragExtendScore(nodeRes, podRes, plugin.typicalPods)
 	return score, framework.NewStatus(framework.Success)
 }
