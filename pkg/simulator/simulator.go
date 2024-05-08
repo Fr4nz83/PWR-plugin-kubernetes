@@ -350,9 +350,15 @@ func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 }
 
 func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPod {
+	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!")
+
+	// IMPORTANT: in this for cycle, we are scheduling the pods! "pods" contains Pod creation and deletion events.
 	var failedPods []simontype.UnscheduledPod
 	sim.arrPodGpuMilli = 0
 	for i, pod := range pods {
+		// Case 0 - Check if the pod has an unscheduled annotation. Unscheduled annotations represent a mechanism used to mark pods that have failed to be
+		//          scheduled onto a node in the cluster. When a pod cannot be scheduled due to resource constraints or other issues, Kubernetes adds an
+		//          annotation to the pod indicating that it remains unscheduled, and thus go to the set of failedPods.
 		if IsPodMarkedUnscheduledAnno(pod) {
 			log.Infof("[%d] pod(%s) has unscheduled annotation\n", i, utils.GeneratePodKey(pod))
 			failedPods = append(failedPods, simontype.UnscheduledPod{
@@ -363,6 +369,9 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 			continue
 		}
 
+		// Case 1 - If the pod does not have a deletion timestamp (indicating it's a creation event), it attempts to schedule
+		// the pod by calling the "assumePod" method.  If scheduling fails, it logs the failure and adds the unscheduled
+		// pod to the failedPods slice.
 		deletionTime := gpushareutils.GetDeletionTimeFromPodAnnotation(pod)
 		if deletionTime == nil {
 			podRes := utils.GetPodResource(pod)
@@ -372,15 +381,21 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 				log.Infof("[%d] failed to schedule pod(%s): %s\n", i, utils.GeneratePodKey(pod), utils.GetPodResource(pod).Repr())
 				failedPods = append(failedPods, *unscheduledPod)
 			}
+			// Case 2 - If the pod does not have a deletion timestamp (indicating it's a creation event), it attempts to schedule
+			// the pod by calling the "assumePod" method.  If scheduling fails, it logs the failure and adds the unscheduled
+			// pod to the failedPods slice.
 		} else {
 			log.Infof("[%d] attempt to delete pod(%s)\n", i, utils.GeneratePodKey(pod))
 			if err := sim.deletePod(pod); err != nil {
 				log.Errorf("failed to delete pod(%s)\n", utils.GeneratePodKey(pod))
 			}
 		}
+		// Reports the Gpu Frag Amount of all nodes.
 		sim.ClusterGpuFragReport()
 		// sim.ReportFragBasedOnSkyline()
 	}
+
+	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => exiting method actually scheduling pods!")
 	return failedPods
 }
 
@@ -516,6 +531,8 @@ func (sim *Simulator) syncNodeCreate(name string, d time.Duration) {
 // syncClusterResourceList: 1) load Pods into creation and deletion events. 2) schedule and delete these existing Pods.
 func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]simontype.UnscheduledPod, error) {
 
+	fmt.Printf("DEBUG FRA, simulator.go.syncClusterResourceList() => creating, deleting and scheduling pods.\n")
+
 	// 1 - sync node
 	// sort nodes according to their names
 	sort.Slice(resourceList.Nodes, func(i, j int) bool {
@@ -607,6 +624,7 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 
 	// 3 - Next, the function processes Pod creation and deletion events from the resourceList. It creates copies of pods for both
 	//     creation and deletion events, adjusting their annotations accordingly. The pod events are then sorted based on their timestamps.
+
 	// sync pods
 	var podEvents []*corev1.Pod
 	for _, p := range resourceList.Pods {
@@ -647,7 +665,7 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 		return ti.Before(tj)
 	})
 
-	// Finally, the sorted pod events are passed to a SchedulePods function, which schedules these pods in the simulated Kubernetes cluster.
+	// 4 - Finally, the sorted pod events are passed to a SchedulePods function, which schedules these pods in the simulated Kubernetes cluster.
 	failedPods := sim.SchedulePods(podEvents)
 
 	return failedPods, nil
