@@ -14,7 +14,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/api/v1alpha1"
-	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type"
+	simontype "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type"
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
 )
 
@@ -81,37 +81,32 @@ type Interface interface {
 // 1. UnscheduledPods - represents unscheduled Pods. If the value is empty, it means that the simulation scheduling was successful.
 // 2. NodeStatus - will record the Pod situation on each Node in detail.
 func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simontype.SimulateResult, error) {
-	
+
 	// init simulator
 	fmt.Printf("DEBUG FRA, simulate.Simulate(): initialize the simulator's config options.\n")
 	sim, err := New(opts...)
 	if err != nil {
 		return nil, err
 	}
-	
-	
+
 	// This line defers the execution of the Close method of the sim object until the surrounding function returns.
 	defer sim.Close()
 
-
-	// In Kubernetes, a DaemonSet ensures that a copy of a specific pod is running on all or a subset of nodes in a cluster. 
-	// The DaemonSet controller automatically manages the lifecycle of these pods, ensuring that they are created as nodes 
+	// In Kubernetes, a DaemonSet ensures that a copy of a specific pod is running on all or a subset of nodes in a cluster.
+	// The DaemonSet controller automatically manages the lifecycle of these pods, ensuring that they are created as nodes
 	// are added to the cluster and terminated when nodes are removed.
 	// When excluding DaemonSet pods from certain operations or queries, it's usually because these pods serve a different
-	// purpose or have different management requirements compared to regular application pods. 
+	// purpose or have different management requirements compared to regular application pods.
 	cluster.Pods, err = GetValidPodExcludeDaemonSet(cluster)
 	if err != nil {
 		return nil, err
 	}
 
-
-
 	log.Infof("Number of original workload pods: %d", len(cluster.Pods))
 	sim.SetWorkloadPods(cluster.Pods) // The method comes from ./pkg/simulator/simulator.go
-	sim.SetTypicalPods() // The method comes from ./pkg/simulator/analysis.go
-	sim.SetSkylinePods() // The method comes from ./pkg/simulator/analysis.go
-	sim.ClusterGpuFragReport() // The method comes from ./pkg/simulator/analysis.go. Reports the Gpu Frag Amount of all nodes
-
+	sim.SetTypicalPods()              // The method comes from ./pkg/simulator/analysis.go
+	sim.SetSkylinePods()              // The method comes from ./pkg/simulator/analysis.go
+	sim.ClusterGpuFragReport()        // The method comes from ./pkg/simulator/analysis.go. Reports the Gpu Frag Amount of all nodes
 
 	fmt.Printf("DEBUG FRA, simulate.Simulate(): workload tuning.\n")
 	customConfig := sim.GetCustomConfig()
@@ -125,8 +120,6 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		cluster.Pods = append(cluster.Pods, validPods...)
 	}
 
-
-
 	// run cluster
 	sim.SortClusterPods(cluster.Pods)
 	sim.RecordPodTotalResourceReq(cluster.Pods)
@@ -134,22 +127,24 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 
 	if customConfig.WorkloadTuningConfig.Ratio > 0 {
 		// <= 0 means no tuning, keeping the cluster.Pods == sim.workloadPods
+		// NOTE: prune or append pods to match the cfg.Ratio * (cluster_GPU_capacity)
 		cluster.Pods = sim.TunePodsByNodeTotalResource(cluster.Pods, customConfig.WorkloadTuningConfig)
 	}
 
-
-	// IMPORTANT: RunCluster(), which comes from ./pkg/simulator/simulator.go, seems to be the most important method of the simulator, the one actually running the simulation.
+	// IMPORTANT: RunCluster(), which comes from ./pkg/simulator/simulator.go, seems to be the most important method of the simulator,
+	// the one actually running the simulation. It starts the scheduler in background, and then starts to schedule pods on nodes.
 	fmt.Printf("DEBUG FRA, simulate.Simulate(): executing RunCluster().\n")
 	var failedPods []simontype.UnscheduledPod
 	unscheduledPods, err := sim.RunCluster(cluster) // Existing pods in the cluster are scheduled here.
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("DEBUG FRA, simulate.Simulate(): finished executing RunCluster().\n")
+
+	fmt.Printf("DEBUG FRA, simulate.Simulate(): taking note of unscheduled pods.\n")
 	failedPods = append(failedPods, unscheduledPods...)
 	utils.ReportFailedPods(failedPods)
 	sim.ClusterAnalysis(TagInitSchedule)
-
-
 
 	// export a cluster snapshot after scheduling
 	if customConfig.ExportConfig.PodSnapshotYamlFilePrefix != "" {
@@ -179,13 +174,11 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		}
 	}
 
-
 	// NOTE: this does not seem to be executed in the simple example.
 	if customConfig.WorkloadInflationConfig.Ratio > 1 {
 		fmt.Printf("DEBUG FRA, simulate.Simulate(): executing RunWorkloadInflationEvaluation().\n")
 		sim.RunWorkloadInflationEvaluation(TagScheduleInflation)
 	}
-
 
 	// NOTE: not clear if this part will be relevant in the simulations. Keep an eye on it.
 	if customConfig.NewWorkloadConfig != "" {
@@ -203,8 +196,6 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		sim.SetTypicalPods()
 		sim.ClusterGpuFragReport()
 	}
-
-
 
 	// evict some pods in the cluster and reschedule them
 	// NOTE: not sure if the code below will be actually used in the simulations, to be checked.
@@ -248,8 +239,6 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		}
 	}
 
-
-
 	// schedule (unscheduled? to be checked) pods
 	// NOTE: not sure if the code below will be actually used in the simulations, to be checked.
 	for _, app := range apps {
@@ -259,7 +248,6 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		}
 		failedPods = append(failedPods, unscheduledPods...)
 	}
-
 
 	// Return the final results.
 	fmt.Printf("DEBUG FRA, simulate.Simulate(): returning the final results.\n")
