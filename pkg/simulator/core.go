@@ -180,14 +180,14 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	}
 
 
-	// NOTE: this does not seem to be executed in the example.
+	// NOTE: this does not seem to be executed in the simple example.
 	if customConfig.WorkloadInflationConfig.Ratio > 1 {
 		fmt.Printf("DEBUG FRA, simulate.Simulate(): executing RunWorkloadInflationEvaluation().\n")
 		sim.RunWorkloadInflationEvaluation(TagScheduleInflation)
 	}
 
 
-
+	// NOTE: not clear if this part will be relevant in the simulations. Keep an eye on it.
 	if customConfig.NewWorkloadConfig != "" {
 		fmt.Printf("DEBUG FRA, simulate.Simulate(): customConfig.NewWorkloadConfig not empty.\n")
 		resources, err := CreateClusterResourceFromClusterConfig(customConfig.NewWorkloadConfig)
@@ -207,8 +207,9 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 
 
 	// evict some pods in the cluster and reschedule them
+	// NOTE: not sure if the code below will be actually used in the simulations, to be checked.
 	if customConfig.DescheduleConfig.Policy != "" {
-		fmt.Printf("DEBUG FRA, simulate.Simulate(): descheduling pods.\n")
+		fmt.Printf("DEBUG FRA, simulate.Simulate(): descheduling plugin being used!\n")
 		unscheduledPods = sim.DescheduleCluster()
 		failedPods = append(failedPods, unscheduledPods...)
 		sim.ClusterAnalysis(TagPostDeschedule)
@@ -250,6 +251,7 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 
 
 	// schedule (unscheduled? to be checked) pods
+	// NOTE: not sure if the code below will be actually used in the simulations, to be checked.
 	for _, app := range apps {
 		unscheduledPods, err = sim.ScheduleApp(app)
 		if err != nil {

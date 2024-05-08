@@ -285,6 +285,8 @@ func (sim *Simulator) runScheduler() {
 	sim.informerFactory.WaitForCacheSync(sim.ctx.Done())
 
 	// Step 2: run scheduler
+	// NOTE: This line creates an anonymous function using the func keyword and immediately invokes it by adding () at the end. 
+	// The go keyword preceding the function literal indicates that the function should be executed concurrently in a new goroutine.
 	go func() {
 		sim.scheduler.Run(sim.ctx)
 	}()
