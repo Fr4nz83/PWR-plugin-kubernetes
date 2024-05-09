@@ -20,8 +20,10 @@ type FGDScorePlugin struct {
 	typicalPods *simontype.TargetPodList
 }
 
-var _ framework.ScorePlugin = &FGDScorePlugin{} // Not sure if doing this is necessary. To be checked.
+var _ framework.ScorePlugin = &FGDScorePlugin{} // Not sure if doing this is necessary, probably just a compile-time check.
 
+// NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
+// These are required to compute the cluster fragmentation.
 func NewFGDScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
 	fmt.Printf("DEBUG FRA, plugin.fgd_score.NewFGDScorePlugin() => Instantiating FGD plugin!\n")
 
@@ -29,6 +31,7 @@ func NewFGDScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *s
 		handle:      handle,
 		typicalPods: typicalPods,
 	}
+
 	allocateGpuIdFunc[plugin.Name()] = allocateGpuIdBasedOnFGDScore
 	return plugin, nil
 }
@@ -38,7 +41,7 @@ func (plugin *FGDScorePlugin) Name() string {
 }
 
 func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleState, p *v1.Pod, nodeName string) (int64, *framework.Status) {
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Scoring a node w.r.t. a pod!\n")
+	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Scoring node %s w.r.t. pod %s!\n", nodeName, p.Name)
 
 	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
 	// "PodRequestsAndLimits()" returns a dictionary of all defined resources summed up for all containers of the pod.
@@ -65,8 +68,9 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod %s: %+v\n", p.ObjectMeta.Name, podRes)
-	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node %s: %+v\n", nodeName, nodeRes)
+	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod: %+v\n", podRes)
+	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => typical pods %+v\n", plugin.typicalPods)
+	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node: %+v\n", nodeRes)
 	// Step 4 - compute the score of the node w.r.t. the considered pod.
 	score, _ := calculateGpuShareFragExtendScore(nodeRes, podRes, plugin.typicalPods)
 	return score, framework.NewStatus(framework.Success)

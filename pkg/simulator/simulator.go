@@ -295,12 +295,19 @@ func (sim *Simulator) runScheduler() {
 }
 
 func (sim *Simulator) createPod(p *corev1.Pod) error {
+
+	// Attempt to create, and thus also schedule, the pod via the Kubernetes client.
 	if _, err := sim.client.CoreV1().Pods(p.Namespace).Create(sim.ctx, p, metav1.CreateOptions{}); err != nil {
 		return fmt.Errorf("%s(%s): %s", simontype.CreatePodError, utils.GeneratePodKey(p), err.Error())
 	}
 
-	// synchronization
+	// synchronization (take note of the time instant in which the pod has been created)
+	// NOTE: the "2*time.Millisecond" is the amount of time used to put to sleep a goroutine (perhaps simulating some waiting time?)
 	sim.syncPodCreate(p.Namespace, p.Name, 2*time.Millisecond)
+
+	// Attempts to retrieve (Get()) the created pod from the Kubernetes API server to check if it was successfully created.
+	// If the pod retrieval is successful and the pod has been scheduled to a node (pod.Spec.NodeName is not empty),
+	// it synchronizes the node update event related to the pod creation and logs that the pod has been scheduled to a specific node.
 	pod, _ := sim.client.CoreV1().Pods(p.Namespace).Get(sim.ctx, p.Name, metav1.GetOptions{})
 	if pod != nil {
 		if pod.Spec.NodeName != "" {
