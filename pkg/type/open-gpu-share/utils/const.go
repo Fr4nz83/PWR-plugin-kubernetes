@@ -38,10 +38,16 @@ var MapGpuTypeMemoryMiB = map[string]int64{
 
 // The map of maps below stores the idle/max power consumption of several GPUs.
 // TODO: to be checked.
-var MapGpuTypeEnergyConsumption = map[string]map[string]float32{
-	"A100": {"idle": float32(35), "full": float32(250)},
-	"A10":  {"idle": float32(25), "full": float32(150)},
-	"T4":   {"idle": float32(35), "full": float32(70)},
-	"V100": {"idle": float32(30), "full": float32(200)},
-	"P100": {"idle": float32(25), "full": float32(150)},
+var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
+	"A100": {"idle": float64(35), "full": float64(250)},
+	"A10":  {"idle": float64(25), "full": float64(150)},
+	"T4":   {"idle": float64(35), "full": float64(70)},
+	"V100": {"idle": float64(30), "full": float64(200)},
+	"P100": {"idle": float64(25), "full": float64(150)},
+}
+
+// The map of maps below stores the idle/max power consumption of several CPUs.
+// TODO: to be checked.
+var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
+	"Intel": {"idle": float64(35), "full": float64(250)},
 }

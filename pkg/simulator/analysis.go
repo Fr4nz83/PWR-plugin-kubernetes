@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
@@ -19,6 +20,52 @@ const (
 	TagScheduleInflation   = "ScheduleInflation"
 	TagDescheduleInflation = "DescheduleInflation"
 )
+
+// ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes
+func (sim *Simulator) ClusterPowerConsumptionReport() {
+	nodeStatus := sim.GetClusterNodeStatus()
+	if len(nodeStatus) == 0 {
+		return
+	}
+	if sumRatio := utils.PodListRatioSum(sim.typicalPods); math.Abs(sumRatio-1) > 1e-3 {
+		log.Errorf("sim.ClusterGpuFragReport: (%.4f != 1.0): %v\n", sumRatio, sim.typicalPods)
+	}
+
+	// *** Scan the nodes in the cluster *** //
+	// For each node, find how many (1) CPUs are used (partial ones are considered fully used).
+	// Then, find out how many GPUs are used -- in this case, each GPU is treated as a separate entity.
+	// Even if a GPU is minimally used, assume that its power consumption is maximal.
+	var nodeCnt uint32 = 0
+	var powerCluster float64 = 0
+	sim.nodeResourceMap = utils.GetNodeResourceMap(nodeStatus)
+	for _, ns := range nodeStatus {
+		if nodeRes, ok := sim.nodeResourceMap[ns.Node.Name]; ok {
+
+			// Calculate the number of idling and occupied CPUs and GPUs in the node.
+			GPU_type := nodeRes.GpuType
+			num_idle_GPUs := float64(nodeRes.GetFullyFreeGpuNum())
+			num_working_GPUs := float64(nodeRes.GpuNumber) - num_idle_GPUs
+
+			node_GPU_power := (gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["idle"] * num_idle_GPUs) +
+				(gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["full"] * num_working_GPUs)
+
+			CPU_type := "Intel"
+			num_idle_CPUs := math.Floor(float64(nodeRes.MilliCpuLeft) / gpushareutils.MILLI)
+			num_working_CPUs := (float64(nodeRes.MilliCpuCapacity) / gpushareutils.MILLI) - num_idle_CPUs
+
+			node_CPU_power := (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_CPUs) +
+				(gpushareutils.MapGpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
+
+			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
+			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)
+
+			powerCluster += node_CPU_power + node_GPU_power
+		}
+		nodeCnt += 1
+	}
+
+	fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by the cluster: %f watts\n", powerCluster)
+}
 
 // ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes
 func (sim *Simulator) ClusterGpuFragReport() {

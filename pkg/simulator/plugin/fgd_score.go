@@ -20,7 +20,7 @@ type FGDScorePlugin struct {
 	typicalPods *simontype.TargetPodList
 }
 
-var _ framework.ScorePlugin = &FGDScorePlugin{} // Not sure if doing this is necessary, probably just a compile-time check.
+var _ framework.ScorePlugin = &FGDScorePlugin{} // This assignment is used at compile-time to check if the class implements the plugin interface.
 
 // NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
 // These are required to compute the cluster fragmentation.
@@ -69,9 +69,12 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	}
 
 	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod: %+v\n", podRes)
-	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => typical pods %+v\n", plugin.typicalPods)
 	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node: %+v\n", nodeRes)
-	// Step 4 - compute the score of the node w.r.t. the considered pod.
+	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => typical pods %+v\n", plugin.typicalPods)
+
+	// Step 4 - compute the score of a node w.r.t. the considered pod.
+	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
+	//		    schedule the pod on it -- the more the increase, the worst the score.
 	score, _ := calculateGpuShareFragExtendScore(nodeRes, podRes, plugin.typicalPods)
 	return score, framework.NewStatus(framework.Success)
 }
@@ -80,8 +83,10 @@ func (plugin *FGDScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 	return nil
 }
 
-// This function computes
+// This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
+// and then measure how much the node's fragmentation changes w.r.t. the target workload.
 func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
+	// Compute the node's current fragmentation.
 	nodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(nodeRes, *typicalPods)
 
 	// Case 1 - the pod requests a fraction of the resources of a single GPU.
@@ -90,19 +95,23 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		// Initially set the score to 0 -- this will be the score assigned to nodes that cannot accomodate the pod.
 		score, gpuId = 0, ""
 
-		// For each node in the cluster, we check how its GPU fragmentation changes by hypotetically assigning the considered pod to it.
+		// For each GPU in the node, check how the GPU's fragmentation would change by hypotetically assigning the considered pod to it.
+		// The loop below scan the set of GPUs within the node.
 		for i := 0; i < len(nodeRes.MilliGpuLeftList); i++ {
 
-			// The node has enough GPU-shared resources to accomodate the pod.
+			// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
 			if nodeRes.MilliGpuLeftList[i] >= podRes.MilliGpu {
 				// Simulate how the available resources on a node would change by scheduling the pod on it.
 				newNodeRes := nodeRes.Copy()
 				newNodeRes.MilliCpuLeft -= podRes.MilliCpu
 				newNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
 
-				// Compute the fragmentation score with the updated resource availability.
+				// Compute the node's fragmentation, with the updated resource availability, considering the target workload.
 				newNodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(newNodeRes, *typicalPods)
 
+				// Compute the difference between the old fragmentation and the new fragmentation -- the higher the result, the better placing the
+				// pod on a GPU is. Then, divide the difference by 1000 as the two values are expressed on millisimed resources.
+				// Finally, apply the sigmoid to get a value in [0,1], and then multiply this value for the maximum admissible score.
 				fragScore := int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore))
 				if gpuId == "" || fragScore > score {
 					score = fragScore
@@ -114,7 +123,9 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 
 		// Case 2 - the pod requests one or more entire GPUs.
 	} else {
+		// Subtract the node's resources that would be taken by the pod once scheduled on it.
 		newNodeRes, _ := nodeRes.Sub(podRes)
+		// Compute the node's fragmentation, with the updated resource availability, considering the target workload.
 		newNodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(newNodeRes, *typicalPods)
 		return int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore)), simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}

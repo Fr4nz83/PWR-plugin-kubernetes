@@ -399,6 +399,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		}
 		// Reports the Gpu Frag Amount of all nodes.
 		sim.ClusterGpuFragReport()
+		sim.ClusterPowerConsumptionReport() // !!!NEW!!!
 		// sim.ReportFragBasedOnSkyline()
 	}
 

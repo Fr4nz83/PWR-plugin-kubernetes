@@ -147,13 +147,20 @@ func NodeGpuFragAmount(nodeRes simontype.NodeResource, typicalPods simontype.Tar
 func NodeGpuShareFragAmount(nodeRes simontype.NodeResource, typicalPods simontype.TargetPodList) FragAmount {
 	data := make([]float64, len(FragRatioDataMap))
 	fragAmount := NewFragAmount(nodeRes.NodeName, data)
+
+	// Consider the pods in the target workload.
 	for _, pod := range typicalPods {
+		// Check if the current pod in the target workload has a probability that makes sense.
 		freq := pod.Percentage
 		if freq < 0 || freq > 1 {
 			log.Errorf("pod %v has bad freq: %f\n", pod.TargetPodResource, freq)
 			continue
 		}
+
+		// Given a node's available resources and a pod belonging to the target workload,
+		// determine how the pod "sees" the node -- 7 classifications are possible.
 		fragType := GetNodePodFrag(nodeRes, pod.TargetPodResource)
+
 		gpuMilliLeftTotal := GetGpuMilliLeftTotal(nodeRes)
 		if fragType == Q3Satisfied { // Part of GPUs are treated as Lack GPU fragment
 			gpuFragMilli := GetGpuFragMilliByNodeResAndPodRes(nodeRes, pod.TargetPodResource)
@@ -554,6 +561,8 @@ func CanNodeHostPodOnGpuMemory(nodeRes simontype.NodeResource, podRes simontype.
 }
 
 func GetNodePodFrag(nodeRes simontype.NodeResource, podRes simontype.PodResource) string {
+
+	// Case 1 - pod does not require GPU resources.
 	if podRes.MilliGpu == 0 {
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return XLSatisfied
@@ -562,20 +571,25 @@ func GetNodePodFrag(nodeRes simontype.NodeResource, podRes simontype.PodResource
 		}
 	}
 
+	// Case 2 - pod does not have access to the node.
 	if IsNodeAccessibleToPod(nodeRes, podRes) == false {
 		return NoAccess
 	}
 
+	// Case 3 - node has enough GPU resources to host the pod.
 	if CanNodeHostPodOnGpuMemory(nodeRes, podRes) {
+		// Case 3.1 - node has enough CPU resources to host the pod.
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return Q3Satisfied
-		} else {
+		} else { // Case 3.2 - node does not have enough CPU resources to host the pod.
 			return Q4LackCpu
 		}
+		// Case 4 - node does not have enough GPU resources to host the pod.
 	} else {
+		// Case 4.1 - node has enough CPU resources to accomodate the pod.
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return Q2LackGpu
-		} else {
+		} else { // Case 4.2 - node does not also have enough CPU resources to accomodate the pod.
 			return Q1LackBoth
 		}
 	}
