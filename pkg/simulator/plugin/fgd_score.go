@@ -20,7 +20,7 @@ type FGDScorePlugin struct {
 	typicalPods *simontype.TargetPodList
 }
 
-var _ framework.ScorePlugin = &FGDScorePlugin{}
+var _ framework.ScorePlugin = &FGDScorePlugin{} // Not sure if doing this is necessary. To be checked.
 
 func NewFGDScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
 	fmt.Printf("DEBUG FRA, plugin.fgd_score.NewFGDScorePlugin() => Instantiating FGD plugin!\n")
@@ -65,8 +65,8 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod %+v: %+v\n", *p, podRes)
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node %s: %+v\n", nodeName, nodeRes)
+	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod %s: %+v\n", p.ObjectMeta.Name, podRes)
+	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node %s: %+v\n", nodeName, nodeRes)
 	// Step 4 - compute the score of the node w.r.t. the considered pod.
 	score, _ := calculateGpuShareFragExtendScore(nodeRes, podRes, plugin.typicalPods)
 	return score, framework.NewStatus(framework.Success)

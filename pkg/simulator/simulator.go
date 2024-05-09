@@ -350,7 +350,7 @@ func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 }
 
 func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPod {
-	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!")
+	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!\n")
 
 	// IMPORTANT: in this for cycle, we are scheduling the pods! "pods" contains Pod creation and deletion events.
 	var failedPods []simontype.UnscheduledPod
@@ -395,7 +395,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		// sim.ReportFragBasedOnSkyline()
 	}
 
-	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => exiting method actually scheduling pods!")
+	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => exiting method actually scheduling pods!\n")
 	return failedPods
 }
 
