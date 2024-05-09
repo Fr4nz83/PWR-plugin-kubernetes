@@ -158,7 +158,14 @@ func NodeGpuShareFragAmount(nodeRes simontype.NodeResource, typicalPods simontyp
 		}
 
 		// Given a node's available resources and a pod belonging to the target workload,
-		// determine how the pod "sees" the node -- 7 classifications are possible.
+		// determine how the pod "sees" the node. 7 cases are possible:
+		// Q1: node has insufficient GPU and CPU resources.
+		// Q2: node has insufficient GPU resources but sufficient CPU ones.
+		// Q3: node has sufficient GPU and CPU resources.
+		// Q4: node has sufficient GPU resources but insufficient CPU ones.
+		// XL: pod does not need a GPU and the node has sufficient CPUs.
+		// XR: pod does not need a GPU and the node has insufficient CPUs.
+		// NA: node is not available (e.g., hardware in node is broken).
 		fragType := GetNodePodFrag(nodeRes, pod.TargetPodResource)
 
 		gpuMilliLeftTotal := GetGpuMilliLeftTotal(nodeRes)
@@ -166,7 +173,7 @@ func NodeGpuShareFragAmount(nodeRes simontype.NodeResource, typicalPods simontyp
 			gpuFragMilli := GetGpuFragMilliByNodeResAndPodRes(nodeRes, pod.TargetPodResource)
 			fragAmount.AddByFragType(Q2LackGpu, freq*float64(gpuFragMilli))
 			fragAmount.AddByFragType(Q3Satisfied, freq*float64(gpuMilliLeftTotal-gpuFragMilli))
-		} else { // Q1, Q2, XL, XR, NA => all idle GPU resources are treated as fragment
+		} else { // Q1, Q2, Q4(?), XL, XR, NA => all idle GPU resources are treated as fragment
 			fragAmount.AddByFragType(fragType, freq*float64(gpuMilliLeftTotal))
 		}
 	}

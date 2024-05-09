@@ -54,7 +54,7 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 			num_working_CPUs := (float64(nodeRes.MilliCpuCapacity) / gpushareutils.MILLI) - num_idle_CPUs
 
 			node_CPU_power := (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_CPUs) +
-				(gpushareutils.MapGpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
+				(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
 
 			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
 			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)

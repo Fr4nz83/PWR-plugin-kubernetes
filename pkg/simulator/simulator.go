@@ -383,14 +383,14 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		if deletionTime == nil {
 			podRes := utils.GetPodResource(pod)
 			sim.arrPodGpuMilli += podRes.TotalMilliGpu()
+
 			log.Infof("[%d] attempt to create pod(%s)\n", i, utils.GeneratePodKey(pod))
 			if unscheduledPod := sim.assumePod(pod); unscheduledPod != nil {
 				log.Infof("[%d] failed to schedule pod(%s): %s\n", i, utils.GeneratePodKey(pod), utils.GetPodResource(pod).Repr())
 				failedPods = append(failedPods, *unscheduledPod)
 			}
-			// Case 2 - If the pod does not have a deletion timestamp (indicating it's a creation event), it attempts to schedule
-			// the pod by calling the "assumePod" method.  If scheduling fails, it logs the failure and adds the unscheduled
-			// pod to the failedPods slice.
+
+			// Case 2 - If the pod does have a deletion timestamp (indicating it's a deletionevent), it attempts to delete the pod.
 		} else {
 			log.Infof("[%d] attempt to delete pod(%s)\n", i, utils.GeneratePodKey(pod))
 			if err := sim.deletePod(pod); err != nil {

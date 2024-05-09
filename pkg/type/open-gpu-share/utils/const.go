@@ -47,7 +47,7 @@ var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 }
 
 // The map of maps below stores the idle/max power consumption of several CPUs.
-// TODO: to be checked.
+// TODO: populate the table with the CPU(s) used in a typical Alibaba cluster.
 var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
-	"Intel": {"idle": float64(35), "full": float64(250)},
+	"Intel": {"idle": float64(35), "full": float64(300)},
 }
