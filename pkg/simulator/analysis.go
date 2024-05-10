@@ -69,6 +69,8 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 
 // ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes
 func (sim *Simulator) ClusterGpuFragReport() {
+	fmt.Printf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Executing ClusterGpuFragReport!\n")
+
 	nodeStatus := sim.GetClusterNodeStatus()
 	if len(nodeStatus) == 0 {
 		return

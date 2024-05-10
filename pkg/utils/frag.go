@@ -87,6 +87,7 @@ func (fa FragAmount) AddByFragType(fragType string, amount float64) error {
 	if amount < 0 {
 		return fmt.Errorf("bad freq")
 	}
+	// Check if key 'fragType' is in map. Then proceed to update its value.
 	if index, ok := FragRatioDataMap[fragType]; !ok {
 		return fmt.Errorf("bad fragType")
 	} else {
@@ -157,7 +158,7 @@ func NodeGpuShareFragAmount(nodeRes simontype.NodeResource, typicalPods simontyp
 			continue
 		}
 
-		// Given a node's available resources and a pod belonging to the target workload,
+		// Given a node's available resources and a pod belonging to the "target workload",
 		// determine how the pod "sees" the node. 7 cases are possible:
 		// Q1: node has insufficient GPU and CPU resources.
 		// Q2: node has insufficient GPU resources but sufficient CPU ones.
@@ -168,12 +169,18 @@ func NodeGpuShareFragAmount(nodeRes simontype.NodeResource, typicalPods simontyp
 		// NA: node is not available (e.g., hardware in node is broken).
 		fragType := GetNodePodFrag(nodeRes, pod.TargetPodResource)
 
+		// Retrieve the total GPU resources available on the node.
 		gpuMilliLeftTotal := GetGpuMilliLeftTotal(nodeRes)
+
+		// Then, update the cluster's GPU fragmentation according to how the pod sees the GPU resources of this node.
 		if fragType == Q3Satisfied { // Part of GPUs are treated as Lack GPU fragment
 			gpuFragMilli := GetGpuFragMilliByNodeResAndPodRes(nodeRes, pod.TargetPodResource)
+
 			fragAmount.AddByFragType(Q2LackGpu, freq*float64(gpuFragMilli))
+
+			// TODO: understand what they are doing with Q3 frag, doesn't seem to align with the paper.
 			fragAmount.AddByFragType(Q3Satisfied, freq*float64(gpuMilliLeftTotal-gpuFragMilli))
-		} else { // Q1, Q2, Q4(?), XL, XR, NA => all idle GPU resources are treated as fragment
+		} else { // Q1, Q2, Q4(?), XL, XR, NA => all unused GPU resources are treated as fragment
 			fragAmount.AddByFragType(fragType, freq*float64(gpuMilliLeftTotal))
 		}
 	}
@@ -569,7 +576,7 @@ func CanNodeHostPodOnGpuMemory(nodeRes simontype.NodeResource, podRes simontype.
 
 func GetNodePodFrag(nodeRes simontype.NodeResource, podRes simontype.PodResource) string {
 
-	// Case 1 - pod does not require GPU resources.
+	// Case 1 - pod does not require GPU resources (XL and XR cases).
 	if podRes.MilliGpu == 0 {
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return XLSatisfied
@@ -578,25 +585,25 @@ func GetNodePodFrag(nodeRes simontype.NodeResource, podRes simontype.PodResource
 		}
 	}
 
-	// Case 2 - pod does not have access to the node.
+	// Case 2 - pod does not have access to the node (NA case).
 	if IsNodeAccessibleToPod(nodeRes, podRes) == false {
 		return NoAccess
 	}
 
 	// Case 3 - node has enough GPU resources to host the pod.
 	if CanNodeHostPodOnGpuMemory(nodeRes, podRes) {
-		// Case 3.1 - node has enough CPU resources to host the pod.
+		// Case 3.1 - node has enough CPU resources to host the pod (Q3).
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return Q3Satisfied
-		} else { // Case 3.2 - node does not have enough CPU resources to host the pod.
+		} else { // Case 3.2 - node does not have enough CPU resources to host the pod (Q4).
 			return Q4LackCpu
 		}
 		// Case 4 - node does not have enough GPU resources to host the pod.
 	} else {
-		// Case 4.1 - node has enough CPU resources to accomodate the pod.
+		// Case 4.1 - node has enough CPU resources to accomodate the pod (Q2).
 		if nodeRes.MilliCpuLeft >= podRes.MilliCpu {
 			return Q2LackGpu
-		} else { // Case 4.2 - node does not also have enough CPU resources to accomodate the pod.
+		} else { // Case 4.2 - node does not also have enough CPU resources to accomodate the pod (Q1).
 			return Q1LackBoth
 		}
 	}
