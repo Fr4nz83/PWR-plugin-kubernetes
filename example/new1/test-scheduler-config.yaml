@@ -35,7 +35,7 @@ profiles:
           - name: DefaultBinder
         enabled:
           - name: Simon
-    pluginConfig:
+    pluginConfig: # The list below contains the configurations of the various plugins.
       - name: FGDScore
         args:
           dimExtMethod: share

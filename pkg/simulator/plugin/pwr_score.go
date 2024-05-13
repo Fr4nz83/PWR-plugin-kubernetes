@@ -120,7 +120,7 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 				// Ideally, we want to allocate a pod to a GPU that is already being used by other pods, thus not increasing that GPU's
 				// power consumption in our simplified power consumption model.
 				// Finally, apply the sigmoid to get a value in [0,1], and then multiply this value for the maximum admissible score.
-				fragScore := int64(sigmoid((old_node_energy-new_node_energy)/1000) * float64(framework.MaxNodeScore))
+				fragScore := int64(sigmoid(old_node_energy-new_node_energy) * float64(framework.MaxNodeScore))
 				if gpuId == "" || fragScore > score {
 					score = fragScore
 					gpuId = strconv.Itoa(i)
@@ -138,7 +138,7 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		new_CPU_energy, new_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
 		new_node_energy := new_CPU_energy + new_GPU_energy
 
-		return int64(sigmoid((old_node_energy-new_node_energy)/1000) * float64(framework.MaxNodeScore)), simontype.AllocateExclusiveGpuId(nodeRes, podRes)
+		return int64(sigmoid(old_node_energy-new_node_energy) * float64(framework.MaxNodeScore)), simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
 
