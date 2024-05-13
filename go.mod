@@ -1,5 +1,5 @@
-// This file declares the module path, which should correspond to the repository URL. If go.mod says module github.com/hkust-adsl/kubernetes-scheduler-simulator, 
-// Go understands that it's working within that module's context.
+// This file declares the module path, which should correspond to the Github repository URL. If go.mod says "module
+// github.com/hkust-adsl/kubernetes-scheduler-simulator", then Go understands that it's working within that module's context.
 module github.com/hkust-adsl/kubernetes-scheduler-simulator
 
 

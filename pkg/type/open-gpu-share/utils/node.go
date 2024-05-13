@@ -1,6 +1,6 @@
 package utils
 
-import "k8s.io/api/core/v1"
+import v1 "k8s.io/api/core/v1"
 
 // IsGpuSharingNode Is the Node for GPU sharing
 func IsGpuSharingNode(node *v1.Node) bool {

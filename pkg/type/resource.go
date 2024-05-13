@@ -2,6 +2,7 @@ package simontype
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 
@@ -492,4 +493,24 @@ func (tnr NodeResource) Add(tpr PodResource, idl []int) (NodeResource, error) {
 	}
 
 	return out, fmt.Errorf("node: %s failed to evict pod: %s (%d GPU requests left)", tnr.Repr(), tpr.Repr(), gpuRequest)
+}
+
+// This function returns the energy consumed by the CPUs and GPUs of a node according to the (un)allocated CPU and GPU resources.
+func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node_GPU_power float64) {
+	// Calculate the number of idling and occupied CPUs and GPUs in the node.
+	GPU_type := tnr.GpuType
+	num_idle_GPUs := float64(tnr.GetFullyFreeGpuNum())
+	num_working_GPUs := float64(tnr.GpuNumber) - num_idle_GPUs
+
+	node_GPU_power = (gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["idle"] * num_idle_GPUs) +
+		(gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["full"] * num_working_GPUs)
+
+	CPU_type := "Intel"
+	num_idle_CPUs := math.Floor(float64(tnr.MilliCpuLeft) / gpushareutils.MILLI)
+	num_working_CPUs := (float64(tnr.MilliCpuCapacity) / gpushareutils.MILLI) - num_idle_CPUs
+
+	node_CPU_power = (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_CPUs) +
+		(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
+
+	return node_CPU_power, node_GPU_power
 }

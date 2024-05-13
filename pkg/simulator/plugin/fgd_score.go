@@ -61,8 +61,8 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	}
 	nodeRes := *nodeResPtr
 
-	// Step 3 - Retrieve the resources requested by the pod, and check if the node is suitable for the pod, i.e., the node has enough resources to accomodate
-	// the pod, and the GPU type requested by the pod is present on the node.
+	// Step 3 - Retrieve the resources requested by the pod, and check if the node is suitable for the pod, i.e., the node has the GPU type requested
+	//		    by the pod (if that's the case).
 	podRes := utils.GetPodResource(p)
 	if !utils.IsNodeAccessibleToPod(nodeRes, podRes) {
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))

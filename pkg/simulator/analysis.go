@@ -41,20 +41,8 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 	for _, ns := range nodeStatus {
 		if nodeRes, ok := sim.nodeResourceMap[ns.Node.Name]; ok {
 
-			// Calculate the number of idling and occupied CPUs and GPUs in the node.
-			GPU_type := nodeRes.GpuType
-			num_idle_GPUs := float64(nodeRes.GetFullyFreeGpuNum())
-			num_working_GPUs := float64(nodeRes.GpuNumber) - num_idle_GPUs
-
-			node_GPU_power := (gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["idle"] * num_idle_GPUs) +
-				(gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["full"] * num_working_GPUs)
-
-			CPU_type := "Intel"
-			num_idle_CPUs := math.Floor(float64(nodeRes.MilliCpuLeft) / gpushareutils.MILLI)
-			num_working_CPUs := (float64(nodeRes.MilliCpuCapacity) / gpushareutils.MILLI) - num_idle_CPUs
-
-			node_CPU_power := (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_CPUs) +
-				(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
+			// Calculate the power consumed by the CPUs and GPUs in a given node.
+			node_CPU_power, node_GPU_power := nodeRes.GetEnergyConsumptionNode()
 
 			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
 			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)
