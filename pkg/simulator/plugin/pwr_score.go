@@ -25,9 +25,10 @@ type PWRScorePlugin struct {
 
 var _ framework.ScorePlugin = &PWRScorePlugin{} // This assignment is used at compile-time to check if the class implements the plugin interface.
 
+// The function below allows to bind this plugin to the simulator.
 // NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
 // These are required to compute the cluster fragmentation.
-func NewPWDScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
+func NewPWRScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
 	fmt.Printf("DEBUG FRA, plugin.pwr_score.NewPWRScorePlugin() => Instantiating PWR plugin!\n")
 
 	plugin := &PWRScorePlugin{

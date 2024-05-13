@@ -36,7 +36,7 @@ var MapGpuTypeMemoryMiB = map[string]int64{
 	"G3":      int64(31457280000 / 1024 / 1024), // 30000 MiB,
 }
 
-// The map of maps below stores the idle/max power consumption of several GPUs.
+// The map of maps below stores the idle/max power consumption of several GPUs (in watt).
 // TODO: to be checked.
 var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 	"A100": {"idle": float64(35), "full": float64(250)},
@@ -46,7 +46,7 @@ var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 	"P100": {"idle": float64(25), "full": float64(150)},
 }
 
-// The map of maps below stores the idle/max power consumption of several CPUs.
+// The map of maps below stores the idle/max power consumption of several CPUs (in watt).
 // TODO: populate the table with the CPU(s) used in a typical Alibaba cluster.
 var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
 	"Intel": {"idle": float64(35), "full": float64(300)},

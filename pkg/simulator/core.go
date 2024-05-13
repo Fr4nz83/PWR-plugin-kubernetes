@@ -82,7 +82,7 @@ type Interface interface {
 // 2. NodeStatus - will record the Pod situation on each Node in detail.
 func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simontype.SimulateResult, error) {
 
-	// init simulator
+	// Instantiate object representing the simulator.
 	fmt.Printf("DEBUG FRA, core.go.Simulate(): initialize the simulator's config options.\n")
 	sim, err := New(opts...)
 	if err != nil {

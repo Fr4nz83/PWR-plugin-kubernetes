@@ -212,33 +212,30 @@ func GetRecorderFactory(cc *schedconfig.CompletedConfig) profile.RecorderFactory
 }
 
 // GetAndSetSchedulerConfig gets scheduler CompletedConfig and sets the list of scheduler bind plugins to Simon.
+// IMPORTANT!
 func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, error) {
-	
+
 	versionedCfg := kubeschedulerconfigv1beta1.KubeSchedulerConfiguration{}
 	versionedCfg.DebuggingConfiguration = *configv1alpha1.NewRecommendedDebuggingConfiguration()
 	kubeschedulerscheme.Scheme.Default(&versionedCfg)
 	kcfg := kubeschedulerconfig.KubeSchedulerConfiguration{}
-	
-	
+
 	if err := kubeschedulerscheme.Scheme.Convert(&versionedCfg, &kcfg, nil); err != nil {
 		return nil, err
 	}
-	
-	
+
 	if len(kcfg.Profiles) == 0 {
 		kcfg.Profiles = []kubeschedulerconfig.KubeSchedulerProfile{
 			{},
 		}
 	}
-	
-	
+
 	kcfg.PercentageOfNodesToScore = 100
 	kcfg.Profiles[0].SchedulerName = simontype.DefaultSchedulerName
 	if kcfg.Profiles[0].Plugins == nil {
 		kcfg.Profiles[0].Plugins = &kubeschedulerconfig.Plugins{}
 	}
-	
-	
+
 	// Prescore plugins are responsible for filtering out nodes that are not suitable for a particular pod based on various
 	// criteria such as node capacity, node affinity, and taints and tolerations.
 	kcfg.Profiles[0].Plugins.PreScore = &kubeschedulerconfig.PluginSet{
@@ -248,9 +245,8 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 			},
 		},
 	}
-	
-	
-	// Score plugins calculate a score for each node based on the pod's requirements and the node's resources. The scheduler 
+
+	// Score plugins calculate a score for each node based on the pod's requirements and the node's resources. The scheduler
 	// then uses these scores to rank the nodes and determine the best node for the pod.
 	kcfg.Profiles[0].Plugins.Score = &kubeschedulerconfig.PluginSet{
 		Enabled: []kubeschedulerconfig.Plugin{
@@ -269,10 +265,12 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 			{
 				Name: simontype.FGDScorePluginName,
 			},
+			{
+				Name: simontype.PWRScorePluginName,
+			},
 		},
 	}
-	
-	
+
 	// These plugins are responsible for filtering out nodes that are not suitable for a particular pod based on various criteria
 	// such as node capacity, node affinity, and taints and tolerations.
 	kcfg.Profiles[0].Plugins.Filter = &kubeschedulerconfig.PluginSet{
@@ -282,9 +280,8 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 			},
 		},
 	}
-	
-	
-	// Reserve plugins are responsible for reserving resources on nodes for pods that have been scheduled to run on those nodes. 
+
+	// Reserve plugins are responsible for reserving resources on nodes for pods that have been scheduled to run on those nodes.
 	// They ensure that the allocated resources are not overcommitted and are available for the scheduled pods.
 	kcfg.Profiles[0].Plugins.Reserve = &kubeschedulerconfig.PluginSet{
 		Enabled: []kubeschedulerconfig.Plugin{
@@ -293,8 +290,8 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 			},
 		},
 	}
-	
-	// Bind plugins are invoked after a node has been selected for scheduling a pod. They perform the actual binding of the pod to the selected node, 
+
+	// Bind plugins are invoked after a node has been selected for scheduling a pod. They perform the actual binding of the pod to the selected node,
 	// updating the Kubernetes API server with the binding information.
 	kcfg.Profiles[0].Plugins.Bind = &kubeschedulerconfig.PluginSet{
 		Enabled: []kubeschedulerconfig.Plugin{
@@ -308,8 +305,7 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 			},
 		},
 	}
-	
-	
+
 	// set percentageOfNodesToScore value to 100
 	kcfg.PercentageOfNodesToScore = 100
 	opts := &schedoptions.Options{
@@ -317,15 +313,13 @@ func GetAndSetSchedulerConfig(schedulerConfig string) (*config.CompletedConfig, 
 		ConfigFile:      schedulerConfig,
 		Logs:            logs.NewOptions(),
 	}
-	
-	
+
 	cc, err := InitKubeSchedulerConfiguration(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init kube scheduler configuration: %v ", err)
 	}
 	return cc, nil
 }
-
 
 // MatchAndSetLocalStorageAnnotationOnNode add storage information configured by json file, belonging to the node that matches
 // the json file name, to annotation of this node

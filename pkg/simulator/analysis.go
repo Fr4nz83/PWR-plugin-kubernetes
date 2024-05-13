@@ -61,6 +61,7 @@ func (sim *Simulator) ClusterGpuFragReport() {
 
 	nodeStatus := sim.GetClusterNodeStatus()
 	if len(nodeStatus) == 0 {
+		fmt.Printf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Nothing to report for now!\n")
 		return
 	}
 	if sumRatio := utils.PodListRatioSum(sim.typicalPods); math.Abs(sumRatio-1) > 1e-3 {

@@ -174,6 +174,9 @@ func New(opts ...Option) (Interface, error) {
 		simontype.FGDScorePluginName: func(configuration runtime.Object, handle framework.Handle) (framework.Plugin, error) {
 			return simonplugin.NewFGDScorePlugin(configuration, handle, &sim.typicalPods)
 		},
+		simontype.PWRScorePluginName: func(configuration runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+			return simonplugin.NewPWRScorePlugin(configuration, handle, &sim.typicalPods)
+		},
 	}
 
 	// The code below appears to set up the simulator's scheduler framework, specifying the various plugins.
