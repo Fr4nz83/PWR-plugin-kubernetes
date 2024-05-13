@@ -15,6 +15,7 @@ profiles:
           - name: GpuPackingScore
           - name: BestFitScore
           - name: FGDScore
+          - name: PWRScore
           - name: ImageLocality
           - name: NodeAffinity
           - name: PodTopologySpread
@@ -24,7 +25,7 @@ profiles:
           - name: NodeResourcesLeastAllocated
           - name: NodePreferAvoidPods
         enabled:
-          - name: FGDScore
+          - name: PWRScore
             weight: 1000
       reserve:
         enabled:
@@ -39,8 +40,12 @@ profiles:
         args:
           dimExtMethod: share
           normMethod: max
+      - name: PWRScore
+        args:
+          dimExtMethod: share
+          normMethod: max
       - name: Open-Gpu-Share
         args:
           dimExtMethod: share
           normMethod: max
-          gpuSelMethod: FGDScore
+          gpuSelMethod: PWRScore
