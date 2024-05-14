@@ -361,6 +361,8 @@ func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 
 func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPod {
 	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!\n")
+	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => initial cluster's power consumption!\n")
+	sim.ClusterPowerConsumptionReport()
 
 	// IMPORTANT: in this for cycle, we are scheduling the pods! "pods" contains Pod creation and deletion events.
 	var failedPods []simontype.UnscheduledPod
@@ -402,7 +404,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		}
 		// Reports the Gpu Frag Amount of all nodes.
 		sim.ClusterGpuFragReport()
-		sim.ClusterPowerConsumptionReport() // !!!NEW!!!
+		sim.ClusterPowerConsumptionReport()
 		// sim.ReportFragBasedOnSkyline()
 	}
 

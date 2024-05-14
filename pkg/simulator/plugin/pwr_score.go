@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
@@ -13,6 +14,10 @@ import (
 	simontype "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type"
 	gpushareutils "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type/open-gpu-share/utils"
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
+)
+
+const (
+	pwr_rescale_factor = 2000
 )
 
 type PWRScorePlugin struct {
@@ -46,6 +51,7 @@ func (plugin *PWRScorePlugin) Name() string {
 
 func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleState, p *v1.Pod, nodeName string) (int64, *framework.Status) {
 	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Scoring node %s w.r.t. pod %s!\n", nodeName, p.Name)
+	// fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => current time: %s\n", time.Now())
 
 	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
 	// "PodRequestsAndLimits()" returns a dictionary of all defined resources summed up for all containers of the pod.
@@ -89,8 +95,8 @@ func (plugin *PWRScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 }
 
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
-// and then measure how much the node's fragmentation changes w.r.t. the target workload.
-func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
+// and then measure how much the node's power consumption increases.
+func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ *simontype.TargetPodList) (score int64, gpuId string) {
 	// Compute the node's current power consumption.
 	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
 	old_node_energy := old_CPU_energy + old_GPU_energy
@@ -112,17 +118,15 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 				newNodeRes.MilliCpuLeft -= podRes.MilliCpu
 				newNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
 
-				// Compute the node's power consumption, with the updated resource availability.
+				// Compute the node's hypotetical increase in power consumption.
 				new_CPU_energy, new_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
 				new_node_energy := new_CPU_energy + new_GPU_energy
 
-				// Compute the difference between the old power consumption and the new one -- the result will be comprised in (-inf, 0].
-				// Ideally, we want to allocate a pod to a GPU that is already being used by other pods, thus not increasing that GPU's
-				// power consumption in our simplified power consumption model.
-				// Finally, apply the sigmoid to get a value in [0,1], and then multiply this value for the maximum admissible score.
-				fragScore := int64(sigmoid(old_node_energy-new_node_energy) * float64(framework.MaxNodeScore))
-				if gpuId == "" || fragScore > score {
-					score = fragScore
+				// Compute the node's score
+				pwrScore := powerScore(old_node_energy, new_node_energy)
+				fmt.Printf("Scoring node %s, GPU %d, with sharing-GPU pod: difference %f, pwrScore %d\n", nodeRes.NodeName, i, old_node_energy-new_node_energy, pwrScore)
+				if gpuId == "" || pwrScore > score {
+					score = pwrScore
 					gpuId = strconv.Itoa(i)
 				}
 			}
@@ -138,12 +142,26 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		new_CPU_energy, new_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
 		new_node_energy := new_CPU_energy + new_GPU_energy
 
-		return int64(sigmoid(old_node_energy-new_node_energy) * float64(framework.MaxNodeScore)), simontype.AllocateExclusiveGpuId(nodeRes, podRes)
+		pwrScore := powerScore(old_node_energy, new_node_energy)
+		fmt.Printf("Scoring node %s with multi-GPU pod: difference %f, pwrScore %d\n", nodeRes.NodeName, old_node_energy-new_node_energy, pwrScore)
+		return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
 
 // Understand if it makes sense that the PWR plugin uses this function.
 func allocateGpuIdBasedOnPWRScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
+	fmt.Printf("DEBUG FRA, plugin.pwr_score.allocateGpuIdBasedOnPWRScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
 	_, gpuId = calculatePWRShareFragExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
+}
+
+// Compute the node's score. The score depends on the difference between the old power consumption and the new one -- the result will be <= 0.
+// Ideally, we want to allocate a pod to a node in which the CPUs and GPUs are already being used, thus not increasing the node's
+// power consumption in our simplified power consumption model.
+// We then rescale this difference by a reasonable "pwr_rescale_factor" to expand the input interval in which
+// the sigmoid will return values not too close to 0 or 1. Given that the differences are always negative, the sigmoid will
+// return values in [0, 0.5]. Consequently, we multiply the sigmoid's output by 2 to rescale it in [0,1]. The final output is then
+// rescaled by the maximum score expected by the scheduling framework.
+func powerScore(oldpwr float64, newpwr float64) int64 {
+	return int64(math.Min(100, (sigmoid((oldpwr-newpwr)/pwr_rescale_factor) * 2 * float64(framework.MaxNodeScore))))
 }

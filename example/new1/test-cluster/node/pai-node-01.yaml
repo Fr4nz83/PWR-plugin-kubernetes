@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/hostname: pai-node-01
     kubernetes.io/os: linux
     node-role.kubernetes.io/master: ''
-    alibabacloud.com/gpu-card-model: V100
+    alibabacloud.com/gpu-card-model: T4
     node-ip: 192.168.0.101
   name: pai-node-01
 status:
