@@ -199,7 +199,7 @@ func (plugin *GpuSharePlugin) Unreserve(ctx context.Context, state *framework.Cy
 	}
 }
 
-// Util Functions
+// *** Util Functions *** //
 
 func (plugin *GpuSharePlugin) ExportGpuNodeInfoAsNodeGpuInfo(nodeName string) (*gpusharecache.GpuNodeInfoStr, error) {
 	if gpuNodeInfo, err := plugin.cache.GetGpuNodeInfo(nodeName); err != nil {

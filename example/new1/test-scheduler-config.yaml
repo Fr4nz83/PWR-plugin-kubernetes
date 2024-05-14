@@ -25,7 +25,7 @@ profiles:
           - name: NodeResourcesLeastAllocated
           - name: NodePreferAvoidPods
         enabled:
-          - name: &enabled_plugin PWRScore
+          - name: &enabled_score_plugin PWRScore
             weight: 1000
       reserve:
         enabled:
@@ -48,4 +48,4 @@ profiles:
         args:
           dimExtMethod: share
           normMethod: max
-          gpuSelMethod: *enabled_plugin
+          gpuSelMethod: *enabled_score_plugin
