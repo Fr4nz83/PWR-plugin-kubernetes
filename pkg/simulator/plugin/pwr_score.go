@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
@@ -90,8 +89,46 @@ func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	return score, framework.NewStatus(framework.Success)
 }
 
+// Here we need to return the struct itself in order to use NormalizeScore.
 func (plugin *PWRScorePlugin) ScoreExtensions() framework.ScoreExtensions {
-	return nil
+	return plugin
+}
+
+func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
+	fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore() => Normalizing scores!\n")
+
+	// Find the minimum score, as the maximum score is known to be 0
+	minScore := scores[0].Score
+	maxScore := minScore
+	for _, score := range scores {
+		if score.Score < minScore {
+			minScore = score.Score
+		}
+		if score.Score > maxScore {
+			maxScore = score.Score
+		}
+	}
+
+	// If all the scores are 0, then we can immediately exit.
+	if minScore == maxScore {
+		fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): all the scores are equal.\n")
+
+		for i, _ := range scores {
+			scores[i].Score = 100
+			fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+		}
+
+		return framework.NewStatus(framework.Success)
+	}
+
+	// Normalize the scores to the range [0, 100].
+	for i, _ := range scores {
+		// Normalization formula: normalized_score = (score - minScore) / (0 - minScore) * 100
+		scores[i].Score = (scores[i].Score - minScore) * 100 / (maxScore - minScore)
+		fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+	}
+
+	return framework.NewStatus(framework.Success)
 }
 
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
@@ -123,8 +160,8 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 				new_node_energy := new_CPU_energy + new_GPU_energy
 
 				// Compute the node's score
-				pwrScore := powerScore(old_node_energy, new_node_energy)
-				fmt.Printf("Scoring node %s, GPU %d, with sharing-GPU pod: difference %f, pwrScore %d\n", nodeRes.NodeName, i, old_node_energy-new_node_energy, pwrScore)
+				pwrScore := int64(old_node_energy - new_node_energy)
+				fmt.Printf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, pwrScore)
 				if gpuId == "" || pwrScore > score {
 					score = pwrScore
 					gpuId = strconv.Itoa(i)
@@ -133,7 +170,7 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		}
 		return score, gpuId
 
-		// Case 2 - the pod requests one or more entire GPUs.
+		// Case 2 - the pod requests no (CPU only), exactly one, or multiple entire GPUs.
 	} else {
 		// Subtract the node's resources that would be taken by the pod once scheduled on it.
 		newNodeRes, _ := nodeRes.Sub(podRes)
@@ -142,8 +179,8 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		new_CPU_energy, new_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
 		new_node_energy := new_CPU_energy + new_GPU_energy
 
-		pwrScore := powerScore(old_node_energy, new_node_energy)
-		fmt.Printf("Scoring node %s with multi-GPU pod: difference %f, pwrScore %d\n", nodeRes.NodeName, old_node_energy-new_node_energy, pwrScore)
+		pwrScore := int64(old_node_energy - new_node_energy)
+		fmt.Printf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n", nodeRes.NodeName, pwrScore)
 		return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
@@ -153,15 +190,4 @@ func allocateGpuIdBasedOnPWRScore(nodeRes simontype.NodeResource, podRes simonty
 	fmt.Printf("DEBUG FRA, plugin.pwr_score.allocateGpuIdBasedOnPWRScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
 	_, gpuId = calculatePWRShareFragExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
-}
-
-// Compute the node's score. The score depends on the difference between the old power consumption and the new one -- the result will be <= 0.
-// Ideally, we want to allocate a pod to a node in which the CPUs and GPUs are already being used, thus not increasing the node's
-// power consumption in our simplified power consumption model.
-// We then rescale this difference by a reasonable "pwr_rescale_factor" to expand the input interval in which
-// the sigmoid will return values not too close to 0 or 1. Given that the differences are always negative, the sigmoid will
-// return values in [0, 0.5]. Consequently, we multiply the sigmoid's output by 2 to rescale it in [0,1]. The final output is then
-// rescaled by the maximum score expected by the scheduling framework.
-func powerScore(oldpwr float64, newpwr float64) int64 {
-	return int64(math.Min(100, (sigmoid((oldpwr-newpwr)/pwr_rescale_factor) * 2 * float64(framework.MaxNodeScore))))
 }
