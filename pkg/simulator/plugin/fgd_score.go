@@ -113,6 +113,7 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 				// pod on a GPU is. Then, divide the difference by 1000 as the two values are expressed on millisimed resources.
 				// Finally, apply the sigmoid to get a value in [0,1], and then multiply this value for the maximum admissible score.
 				fragScore := int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore))
+				fmt.Printf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, fragScore)
 				if gpuId == "" || fragScore > score {
 					score = fragScore
 					gpuId = strconv.Itoa(i)
@@ -127,7 +128,11 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		newNodeRes, _ := nodeRes.Sub(podRes)
 		// Compute the node's fragmentation, with the updated resource availability, considering the target workload.
 		newNodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(newNodeRes, *typicalPods)
-		return int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore)), simontype.AllocateExclusiveGpuId(nodeRes, podRes)
+
+		fragScore := int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore))
+		fmt.Printf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, with no-CPU or multi-GPU pod: %d\n", nodeRes.NodeName, fragScore)
+
+		return fragScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
 
