@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	pwr_rescale_factor = 2000
+	pwr_rescale_factor = 1000
 )
 
 type PWRScorePlugin struct {

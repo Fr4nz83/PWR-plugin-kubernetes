@@ -8,7 +8,8 @@ metadata:
     kubernetes.io/hostname: pai-node-00
     kubernetes.io/os: linux
     node-role.kubernetes.io/master: ''
-    alibabacloud.com/gpu-card-model: V100
+    # alibabacloud.com/cpu-model: Intel # Specifies the CPU model present in the node.
+    alibabacloud.com/gpu-card-model: V100 # Specifies the GPU model present in the node.
     node-ip: 192.168.0.101
   name: pai-node-01
 status:

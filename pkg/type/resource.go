@@ -49,6 +49,7 @@ const (
 )
 
 type PodResource struct { // typical pod, without name and namespace.
+	CpuType   string
 	MilliCpu  int64
 	MilliGpu  int64 // Milli GPU request per GPU, 0-1000
 	GpuNumber int
@@ -59,6 +60,7 @@ type PodResource struct { // typical pod, without name and namespace.
 // NodeResource is initialized by utils.GetNodeResourceViaPodList, utils.GetNodeResourceViaHandleAndName, utils.GetNodeResourceViaNodeInfo
 type NodeResource struct {
 	NodeName         string
+	CpuType          string
 	MilliCpuLeft     int64
 	MilliCpuCapacity int64
 	MilliGpuLeftList []int64 // Do NOT sort it directly, using SortedMilliGpuLeftIndexList instead. Its order matters; the index is the GPU device index.
@@ -91,6 +93,7 @@ type GpuResource struct {
 }
 
 type NodeResourceFlat struct {
+	CpuType  string
 	MilliCpu int64
 	MilliGpu string
 	GpuType  string
@@ -103,6 +106,7 @@ func (tpr PodResource) Repr() string {
 	outStr += fmt.Sprintf("CPU: %6.2f", float64(tpr.MilliCpu)/1000)
 	outStr += fmt.Sprintf(", GPU: %d", tpr.GpuNumber)
 	outStr += fmt.Sprintf(" x {%-4d}m", tpr.MilliGpu)
+	outStr += fmt.Sprintf(" (%s)", tpr.CpuType)
 	outStr += fmt.Sprintf(" (%s)", tpr.GpuType)
 	outStr += ">"
 	return outStr
@@ -114,7 +118,7 @@ func (tpr PodResource) TotalMilliGpu() int64 {
 
 func (tnr NodeResource) Repr() string {
 	outStr := fmt.Sprintf("%s<", tnr.NodeName)
-	outStr += fmt.Sprintf("CPU: %6.2f/%6.2f", float64(tnr.MilliCpuLeft)/1000, float64(tnr.MilliCpuCapacity)/1000)
+	outStr += fmt.Sprintf("CPU (%s): %6.2f/%6.2f", tnr.CpuType, float64(tnr.MilliCpuLeft)/1000, float64(tnr.MilliCpuCapacity)/1000)
 	outStr += fmt.Sprintf(", GPU (%s): %d", tnr.GpuType, tnr.GpuNumber)
 	if tnr.GpuNumber > 0 {
 		outStr += fmt.Sprintf(" x %dm, Left:", gpushareutils.MILLI)
@@ -163,7 +167,7 @@ func (tnr NodeResource) SortedMilliGpuLeftIndexList(ascending bool) []int {
 }
 
 func (tnr NodeResource) Flatten(remark string) NodeResourceFlat {
-	nrf := NodeResourceFlat{tnr.MilliCpuLeft, "", tnr.GpuType, remark}
+	nrf := NodeResourceFlat{tnr.CpuType, tnr.MilliCpuLeft, "", tnr.GpuType, remark}
 
 	// Sort NodeRes's GpuLeft in descending
 	sortedIndex := tnr.SortedMilliGpuLeftIndexList(false)
@@ -407,6 +411,7 @@ func (tnr NodeResource) Copy() NodeResource {
 
 	return NodeResource{
 		NodeName:         tnr.NodeName,
+		CpuType:          tnr.CpuType,
 		MilliCpuLeft:     tnr.MilliCpuLeft,
 		MilliCpuCapacity: tnr.MilliCpuCapacity,
 		MilliGpuLeftList: milliGpuLeftList,
@@ -496,6 +501,8 @@ func (tnr NodeResource) Add(tpr PodResource, idl []int) (NodeResource, error) {
 }
 
 // This function returns the energy consumed by the CPUs and GPUs of a node according to the (un)allocated CPU and GPU resources.
+// Here, we assume that each GPU is an entire GPU, i.e., not a MiG partition.
+// Moreover, we assume that 2 vCPUs are allocated on a single physical core of some CPU, as indicated in Alibaba docs.
 func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node_GPU_power float64) {
 	// Calculate the number of idling and occupied CPUs and GPUs in the node.
 	GPU_type := tnr.GpuType
@@ -505,12 +512,20 @@ func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node
 	node_GPU_power = (gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["idle"] * num_idle_GPUs) +
 		(gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["full"] * num_working_GPUs)
 
-	CPU_type := "Intel"
-	num_idle_CPUs := math.Floor(float64(tnr.MilliCpuLeft) / gpushareutils.MILLI)
-	num_working_CPUs := (float64(tnr.MilliCpuCapacity) / gpushareutils.MILLI) - num_idle_CPUs
+	CPU_type := tnr.CpuType
+	num_real_cores_node := math.Ceil(float64(tnr.MilliCpuCapacity) / gpushareutils.MILLI / 2)
+	num_idle_cores_node := math.Floor(float64(tnr.MilliCpuLeft) / gpushareutils.MILLI / 2)
+	num_working_cores_node := num_real_cores_node - num_idle_cores_node
 
-	node_CPU_power = (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_CPUs) +
-		(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_working_CPUs)
+	cpu_type_ncores := gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["ncores"]
+	num_cpus_node := math.Ceil(num_real_cores_node / cpu_type_ncores)
+	num_active_cpus := math.Ceil(num_working_cores_node / cpu_type_ncores)
+	num_idle_cpus := num_cpus_node - num_active_cpus
 
+	node_CPU_power = (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_cpus) +
+		(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_active_cpus)
+
+	fmt.Printf("DEBUG FRA, resource.go.GetEnergyConsumptionNode() => CPU model for node %s: %s\n", tnr.NodeName, tnr.CpuType)
+	// fmt.Printf("%f %f %f %f %f %f", num_real_cores_node, num_idle_cores_node, num_working_cores_node, num_cpus_node, num_active_cpus, num_idle_cpus)
 	return node_CPU_power, node_GPU_power
 }

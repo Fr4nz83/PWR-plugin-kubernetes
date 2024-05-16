@@ -30,3 +30,11 @@ func GetGpuModelOfNode(node *v1.Node) string {
 	}
 	return ""
 }
+
+// GetCpuModelOfNode Get the CPU Model of the node, see also the types in MapCpuTypeEnergyConsumption
+func GetCpuModelOfNode(node *v1.Node) string {
+	if val, ok := node.ObjectMeta.Labels[CpuModelName]; ok {
+		return val
+	}
+	return ""
+}

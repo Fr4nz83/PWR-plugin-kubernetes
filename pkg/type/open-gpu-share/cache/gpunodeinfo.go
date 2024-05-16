@@ -21,6 +21,7 @@ type GpuNodeInfo struct {
 	node     *v1.Node
 	devs     map[int]*DeviceInfo
 	gpuCount int
+	modelCpu string
 	model    string
 	rwmu     *sync.RWMutex
 }
@@ -29,10 +30,11 @@ type GpuNodeInfo struct {
 func NewGpuNodeInfo(node *v1.Node) *GpuNodeInfo {
 	//log.Printf("debug: NewGpuNodeInfo() creates nodeInfo for %s", node.Name)
 
+	cpuModel := utils.GetCpuModelOfNode(node)
 	cardModel := utils.GetGpuModelOfNode(node)
 	devMap := map[int]*DeviceInfo{}
 	for i := 0; i < utils.GetGpuCountOfNode(node); i++ {
-		devMap[i] = newDeviceInfo(i, cardModel)
+		devMap[i] = newDeviceInfo(i, cpuModel, cardModel)
 	}
 
 	//if len(devMap) == 0 {
@@ -44,6 +46,7 @@ func NewGpuNodeInfo(node *v1.Node) *GpuNodeInfo {
 		node:     node,
 		devs:     devMap,
 		gpuCount: utils.GetGpuCountOfNode(node),
+		modelCpu: cpuModel,
 		model:    cardModel,
 		rwmu:     new(sync.RWMutex),
 	}
@@ -55,10 +58,11 @@ func (n *GpuNodeInfo) Reset(node *v1.Node) {
 	n.node = node
 
 	if len(n.devs) == 0 && n.gpuCount > 0 {
+		cpuModel := utils.GetCpuModelOfNode(node)
 		cardModel := utils.GetGpuModelOfNode(node)
 		devMap := map[int]*DeviceInfo{}
 		for i := 0; i < utils.GetGpuCountOfNode(node); i++ {
-			devMap[i] = newDeviceInfo(i, cardModel)
+			devMap[i] = newDeviceInfo(i, cpuModel, cardModel)
 		}
 		n.devs = devMap
 	}

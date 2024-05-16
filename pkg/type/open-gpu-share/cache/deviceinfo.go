@@ -4,17 +4,18 @@ import (
 	"log"
 	"sync"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type/open-gpu-share/utils"
 )
 
 type DeviceInfo struct {
-	idx    int
-	podMap map[types.UID]*v1.Pod
-	model  string
-	rwmu   *sync.RWMutex
+	idx      int
+	podMap   map[types.UID]*v1.Pod
+	cpuModel string
+	model    string
+	rwmu     *sync.RWMutex
 }
 
 func (d *DeviceInfo) GetPods() []*v1.Pod {
@@ -25,12 +26,13 @@ func (d *DeviceInfo) GetPods() []*v1.Pod {
 	return pods
 }
 
-func newDeviceInfo(index int, cardModel string) *DeviceInfo {
+func newDeviceInfo(index int, cpuModel string, cardModel string) *DeviceInfo {
 	return &DeviceInfo{
-		idx:    index,
-		podMap: map[types.UID]*v1.Pod{},
-		model:  cardModel,
-		rwmu:   new(sync.RWMutex),
+		idx:      index,
+		podMap:   map[types.UID]*v1.Pod{},
+		cpuModel: cpuModel,
+		model:    cardModel,
+		rwmu:     new(sync.RWMutex),
 	}
 }
 

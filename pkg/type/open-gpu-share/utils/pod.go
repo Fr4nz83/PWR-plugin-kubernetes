@@ -75,6 +75,15 @@ func GetGpuModelFromPodAnnotation(pod *v1.Pod) (gpuType string) {
 	return gpuType
 }
 
+func GetCpuModelFromPodAnnotation(pod *v1.Pod) (cpuType string) {
+	if len(pod.ObjectMeta.Annotations) > 0 {
+		if value, found := pod.ObjectMeta.Annotations[CpuModelName]; found {
+			cpuType += value
+		}
+	}
+	return cpuType
+}
+
 // GetGpuCountFromPodAnnotation gets the GPU Count of the pod
 func GetGpuCountFromPodAnnotation(pod *v1.Pod) (gpuCount int) {
 	if len(pod.ObjectMeta.Annotations) > 0 {

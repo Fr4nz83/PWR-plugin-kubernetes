@@ -78,6 +78,7 @@ func (plugin *GpuSharePlugin) Name() string {
 
 // Filter Plugin
 // Filter filters out non-allocatable nodes
+// TODO: da fare il filtraggio anche in funzione della CPU model richiesta da un pod.
 func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	//fmt.Printf("filter_gpu: pod %s/%s, nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 	// Pass if the pod does not require GPU resources
@@ -93,7 +94,9 @@ func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.Cycle
 	// Reject if the GPU type does not match
 	nodeGpuType := gpushareutils.GetGpuModelOfNode(node)
 	podGpuType := gpushareutils.GetGpuModelFromPodAnnotation(pod)
-	if utils.IsNodeAccessibleToPodByType(nodeGpuType, podGpuType) == false {
+	nodeCpuType := gpushareutils.GetCpuModelOfNode(node)
+	podCpuType := gpushareutils.GetCpuModelFromPodAnnotation(pod)
+	if utils.IsNodeAccessibleToPodByType(nodeGpuType, podGpuType, nodeCpuType, podCpuType) == false {
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}
 
