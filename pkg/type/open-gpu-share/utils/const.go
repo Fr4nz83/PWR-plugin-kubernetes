@@ -59,5 +59,5 @@ var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 //
 // TODO: populate the table with the CPU(s) used in typical Alibaba clusters.
 var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
-	"": {"idle": float64(35), "full": float64(300), "ncores": float64(32)},
+	"": {"idle": float64(35), "full": float64(300), "ncores": float64(32)}, // If no node's CPU type is provided (shouldn't happen!), assume this CPU profile.
 }

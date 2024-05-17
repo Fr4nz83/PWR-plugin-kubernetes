@@ -203,8 +203,8 @@ func New(opts ...Option) (Interface, error) {
 
 // RunCluster with real client in a production cluster or fake client in a simulated cluster.
 func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.UnscheduledPod, error) {
-	// start scheduler
-	fmt.Printf("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in background.\n")
+	// start scheduler on a different process.
+	fmt.Printf("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in a different process.\n")
 	sim.runScheduler()
 
 	// Example of Go type assertion with type switch.
@@ -639,6 +639,7 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 	//     creation and deletion events, adjusting their annotations accordingly. The pod events are then sorted based on their timestamps.
 
 	// sync pods
+	// *** IMPORTANTE ***
 	var podEvents []*corev1.Pod
 	for _, p := range resourceList.Pods {
 		// pod creation event
@@ -937,6 +938,8 @@ func (sim *Simulator) SortClusterPods(pods []*corev1.Pod) {
 		rand.Shuffle(len(pods), func(i, j int) {
 			pods[i], pods[j] = pods[j], pods[i]
 		})
+		// If shuffle == false, pods are sorted according to their creation time (retrieved from the YAML annotations).
+		// If the creation time is missing from the annotations, then use the current time.
 	} else {
 		timeNow := time.Now() //.Format(time.RFC3339)
 		sort.SliceStable(pods, func(i, j int) bool {
@@ -1152,6 +1155,7 @@ func displaySchedulerConfig(config *config.CompletedConfig) {
 
 // TunePodsByNodeTotalResource prune or append pods to match the cfg.Ratio * (cluster_GPU_capacity)
 func (sim *Simulator) TunePodsByNodeTotalResource(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
+	// Return an error if the total amount of CPU or GPU resources offered by nodes or requested by pods is <= 0.
 	if sim.podTotalMilliCpuReq <= 0 {
 		panic("sim.podTotalMilliCpuReq <= 0")
 	} else if sim.podTotalMilliGpuReq <= 0 {
@@ -1166,12 +1170,18 @@ func (sim *Simulator) TunePodsByNodeTotalResource(pods []*corev1.Pod, cfg v1alph
 	tgtTotalMilliGpu := tuneRatio * float64(sim.nodeTotalMilliGpu)
 	log.Infof("[Tune] Num of Pods before Tuning: %d\n", len(pods))
 	log.Infof("[Tune] %d vs %.2f (%.2f * %d)\n", sim.podTotalMilliGpuReq, tgtTotalMilliGpu, tuneRatio, sim.nodeTotalMilliGpu)
+
+	// Case 1: tuneRatio <= 0 means that no tuning is needed.
 	if tuneRatio <= 0 {
 		log.Infof("[Tune] Num of Pods after Tuning: %d\n", len(pods))
 		return pods
+		// Case 2:  If the current GPU requests of the pods match the target GPU usage,
+		// the method logs that no tuning is needed and returns the original list of pods.
 	} else if float64(sim.podTotalMilliGpuReq) == tgtTotalMilliGpu {
 		log.Infof("[Tune] Num of Pods after Tuning: %d\n", len(pods))
 		return pods
+		// Case 3: If the current GPU requests of the pods exceed the target GPU usage, the
+		// method calls sim.tuneDownPods to reduce the number of pods and logs the new number of pods.
 	} else if float64(sim.podTotalMilliGpuReq) > tgtTotalMilliGpu {
 		pods = sim.tuneDownPods(pods, cfg)
 		log.Infof("[Tune] Num of Pods after Tuning: %d\n", len(pods))
@@ -1191,6 +1201,7 @@ func RemovePodsByIndex(s []*corev1.Pod, index int) []*corev1.Pod {
 
 func (sim *Simulator) tuneDownPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
 	tuneRatio := cfg.Ratio
+	// Iteratively remove random pods from the original workload until "sim.podTotalMilliGpuReq) <= tuneRatio*float64(sim.nodeTotalMilliGpu" is met.
 	for float64(sim.podTotalMilliGpuReq) > tuneRatio*float64(sim.nodeTotalMilliGpu) {
 		if numPods := len(pods); numPods > 0 {
 			idx := rand.Intn(numPods)
@@ -1206,6 +1217,7 @@ func (sim *Simulator) tuneDownPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuni
 }
 
 func (sim *Simulator) tuneUpPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
+	// Iteratively add random pods from the original workload until "sim.podTotalMilliGpuReq) > tuneRatio*float64(sim.nodeTotalMilliGpu" is met.
 	tuneRatio := cfg.Ratio
 	n := len(sim.workloadPods)
 	i := 0
