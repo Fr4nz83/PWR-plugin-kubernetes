@@ -187,6 +187,7 @@ func GetObjectFromYamlContent(ymlStr []string) (ResourceTypes, error) {
 
 func InitKubeSchedulerConfiguration(opts *schedoptions.Options) (*schedconfig.CompletedConfig, error) {
 	c := &schedconfig.Config{}
+
 	// clear out all unnecessary options so no port is bound
 	// to allow running multiple instances in a row
 	opts.Deprecated = nil

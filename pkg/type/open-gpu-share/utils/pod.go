@@ -97,7 +97,8 @@ func GetGpuCountFromPodAnnotation(pod *v1.Pod) (gpuCount int) {
 	return gpuCount
 }
 
-// GetGpuAffinityFromPodAnnotation returns the gpu affinity of the pod
+// GetGpuAffinityFromPodAnnotation returns the gpu affinity of the pod.
+// NOTE: it determines if a POD is CPU-only, GPU-sharing, or requires multiple GPUs.
 func GetGpuAffinityFromPodAnnotation(p *v1.Pod) (affinity string) {
 	gpuCount := GetGpuCountFromPodAnnotation(p)
 	gpuMilli := GetGpuMilliFromPodAnnotation(p)
