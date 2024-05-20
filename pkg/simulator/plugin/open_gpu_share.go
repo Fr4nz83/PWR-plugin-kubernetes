@@ -76,21 +76,21 @@ func (plugin *GpuSharePlugin) Name() string {
 	return simontype.OpenGpuSharePluginName
 }
 
-// Filter Plugin
-// Filter filters out non-allocatable nodes
-// TODO: da fare il filtraggio anche in funzione della CPU model richiesta da un pod.
+// Filter Plugin: filters out nodes that do not have the appropriate CPU/GPU types requested by the pods.
+// It also checks whether a node has enough GPU resources to accomodate a pod.
 func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
-	fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => filter_gpu: pod %s/%s, nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
+	fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => filtering for pod %s/%s, nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 
 	// Check if the pod does not require GPU resources
 	if podGpuMilli := gpushareutils.GetGpuMilliFromPodAnnotation(pod); podGpuMilli <= 0 {
 		return framework.NewStatus(framework.Success)
 	}
 
-	// If the pod requires GPU resources, check if the node has enough.
+	// If the pod requires GPU resources, check if the node has any.
 	node := nodeInfo.Node()
 	// Reject if the node has no GPU resource
 	if nodeGpuCount := gpushareutils.GetGpuCountOfNode(node); nodeGpuCount == 0 {
+		fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => unschedulable (1) pod %s/%s on nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}
 
@@ -100,15 +100,19 @@ func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.Cycle
 	nodeCpuType := gpushareutils.GetCpuModelOfNode(node)
 	podCpuType := gpushareutils.GetCpuModelFromPodAnnotation(pod)
 	if !utils.IsNodeAccessibleToPodByType(nodeGpuType, podGpuType, nodeCpuType, podCpuType) {
+		fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => unschedulable (2) pod %s/%s on nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}
 
 	gpuNodeInfo, err := plugin.cache.GetGpuNodeInfo(node.Name)
 	if err != nil {
+		fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => unschedulable (3) pod %s/%s on nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}
+	// AllocateGpuId determines if a node has enough GPU resources to accomodate a pod.
 	_, found := gpuNodeInfo.AllocateGpuId(pod)
 	if !found {
+		fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => unschedulable (4) pod %s/%s on nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}
 
@@ -116,6 +120,8 @@ func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.Cycle
 }
 
 func (plugin *GpuSharePlugin) updateNode(node *v1.Node) error {
+	fmt.Printf("DEBUG FRA, executing open_gpu_share.go.updateNode()\n")
+
 	nodeGpuInfoStr, err := plugin.ExportGpuNodeInfoAsNodeGpuInfo(node.Name)
 	if err != nil {
 		return err
@@ -134,6 +140,8 @@ func (plugin *GpuSharePlugin) updateNode(node *v1.Node) error {
 }
 
 func (plugin *GpuSharePlugin) addOrUpdatePod(pod *v1.Pod, nodeName string) error {
+	fmt.Printf("DEBUG FRA, executing open_gpu_share.go.addOrUpdatePod()\n")
+
 	if err := plugin.cache.AddOrUpdatePod(pod, nodeName); err != nil {
 		return err
 	}
@@ -152,6 +160,8 @@ func (plugin *GpuSharePlugin) addOrUpdatePod(pod *v1.Pod, nodeName string) error
 }
 
 func (plugin *GpuSharePlugin) removePod(pod *v1.Pod, nodeName string) error {
+	fmt.Printf("DEBUG FRA, executing open_gpu_share.go.removePod()\n")
+
 	if nodeName == "" {
 		return nil
 	}
@@ -167,8 +177,9 @@ func (plugin *GpuSharePlugin) removePod(pod *v1.Pod, nodeName string) error {
 }
 
 // Reserve Plugin
-// Reserve updates the GPU resource of the given node, according to the pod's request.
 func (plugin *GpuSharePlugin) Reserve(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeName string) *framework.Status {
+	fmt.Printf("DEBUG FRA, open_gpu_share.go.Reserve() => reserving for pod %s/%s, nodeName %s\n", pod.Namespace, pod.Name, nodeName)
+
 	plugin.Lock()
 	defer plugin.Unlock()
 
@@ -197,6 +208,8 @@ func (plugin *GpuSharePlugin) Reserve(ctx context.Context, state *framework.Cycl
 
 // Unreserve undoes the GPU resource updated in Reserve function.
 func (plugin *GpuSharePlugin) Unreserve(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeName string) {
+	fmt.Printf("DEBUG FRA, executing open_gpu_share.go.Unreserve()\n")
+
 	plugin.Lock()
 	defer plugin.Unlock()
 

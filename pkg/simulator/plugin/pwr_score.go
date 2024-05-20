@@ -15,10 +15,6 @@ import (
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
 )
 
-const (
-	pwr_rescale_factor = 1000
-)
-
 type PWRScorePlugin struct {
 	handle      framework.Handle
 	typicalPods *simontype.TargetPodList

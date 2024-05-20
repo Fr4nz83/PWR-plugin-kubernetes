@@ -298,9 +298,12 @@ func (sim *Simulator) runScheduler() {
 }
 
 func (sim *Simulator) createPod(p *corev1.Pod) error {
+	fmt.Printf("DEBUG FRA, simulator.go.createPod => executing createPod!\n")
 
 	// Attempt to create, and thus also schedule, the pod via the Kubernetes client.
 	if _, err := sim.client.CoreV1().Pods(p.Namespace).Create(sim.ctx, p, metav1.CreateOptions{}); err != nil {
+		fmt.Printf("DEBUG FRA, simulator.go.createPod => error: %s\n", err)
+
 		return fmt.Errorf("%s(%s): %s", simontype.CreatePodError, utils.GeneratePodKey(p), err.Error())
 	}
 
@@ -318,8 +321,12 @@ func (sim *Simulator) createPod(p *corev1.Pod) error {
 			log.Infof("pod(%s) is scheduled to node(%s)\n", utils.GeneratePodKey(pod), pod.Spec.NodeName)
 		}
 	} else {
+		fmt.Printf("DEBUG FRA, simulator.go.createPod => pod(%s) not created, should not happen\n", utils.GeneratePodKey(p))
+
 		log.Errorf("[createPod] pod(%s) not created, should not happen", utils.GeneratePodKey(p))
 	}
+
+	fmt.Printf("DEBUG FRA, simulator.go.createPod => terminating execution of createPod!\n")
 	return nil
 }
 
@@ -329,7 +336,7 @@ func (sim *Simulator) deletePod(p *corev1.Pod) error {
 	if pod != nil {
 		nodeName = pod.Spec.NodeName
 	} else {
-		log.Debugf("[deletePod] attempt to delete a non-existed pod(%s)\n", utils.GeneratePodKey(p))
+		log.Debugf("[deletePod] attempt to delete a non-existent pod(%s)\n", utils.GeneratePodKey(p))
 		return nil
 	}
 
@@ -349,13 +356,20 @@ func (sim *Simulator) deletePod(p *corev1.Pod) error {
 }
 
 func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
-	err := sim.createPod(pod)
-	if err != nil || sim.isPodUnscheduled(pod.Namespace, pod.Name) {
-		if err = sim.deletePod(pod); err != nil {
+	fmt.Printf("DEBUG FRA, simulator.go.assumePod => executing assumePod!\n")
+
+	err1 := sim.createPod(pod)
+	checkUnscheduled := sim.isPodUnscheduled(pod.Namespace, pod.Name)
+	if (err1 != nil) || checkUnscheduled {
+		if err2 := sim.deletePod(pod); err2 != nil {
 			log.Errorf("[assumePod] failed to delete pod(%s)\n", utils.GeneratePodKey(pod))
 		}
+
+		fmt.Printf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod (error: %+v, unscheduled?: %t)!\n", err1, checkUnscheduled)
 		return &simontype.UnscheduledPod{Pod: pod}
 	}
+
+	fmt.Printf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod!\n")
 	return nil
 }
 
@@ -371,6 +385,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		// Case 0 - Check if the pod has an unscheduled annotation. Unscheduled annotations represent a mechanism used to mark pods that have failed to be
 		//          scheduled onto a node in the cluster. When a pod cannot be scheduled due to resource constraints or other issues, Kubernetes adds an
 		//          annotation to the pod indicating that it remains unscheduled, and thus go to the set of failedPods.
+		// NOTE: not clear if this can occur with the traces.
 		if IsPodMarkedUnscheduledAnno(pod) {
 			log.Infof("[%d] pod(%s) has unscheduled annotation\n", i, utils.GeneratePodKey(pod))
 			failedPods = append(failedPods, simontype.UnscheduledPod{
@@ -396,6 +411,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 			}
 
 			// Case 2 - If the pod does have a deletion timestamp (indicating it's a deletionevent), it attempts to delete the pod.
+			// NOTE: if a pod hasn't been created, e.g., it wasn't possible to schedule it on a node, then this should generate the error below.
 		} else {
 			log.Infof("[%d] attempt to delete pod(%s)\n", i, utils.GeneratePodKey(pod))
 			if err := sim.deletePod(pod); err != nil {
@@ -468,6 +484,8 @@ func (sim *Simulator) isPodFoundInNodeGpuAnno(node *corev1.Node, p *corev1.Pod) 
 }
 
 func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
+	fmt.Printf("DEBUG FRA, simulator.go.syncPodCreate => executing syncPodCreate!\n")
+
 	for {
 		if sim.isPodCreated(ns, name) {
 			break
@@ -477,6 +495,8 @@ func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
 }
 
 func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
+	fmt.Printf("DEBUG FRA, simulator.go.syncPodDelete => executing syncPodDelete!\n")
+
 	for {
 		log.Debugf("check if pod(%s) has been deleted\n", name)
 		if sim.isPodDeleted(ns, name) {
@@ -488,6 +508,8 @@ func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
 }
 
 func (sim *Simulator) syncNodeUpdateOnPodCreate(nodeName string, p *corev1.Pod, d time.Duration) {
+	fmt.Printf("DEBUG FRA, simulator.go.syncNodeUpdateOnPodCreate => executing syncNodeUpdateOnPodCreate!\n")
+
 	for {
 		node, _ := sim.client.CoreV1().Nodes().Get(sim.ctx, nodeName, metav1.GetOptions{})
 		if node == nil {
@@ -639,15 +661,21 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 	//     creation and deletion events, adjusting their annotations accordingly. The pod events are then sorted based on their timestamps.
 
 	// sync pods
-	// *** IMPORTANTE ***
+	// IMPORTANT: the code fragment below appear to generate pod creation and deletion events according to the creation and deletion timestamps
+	//            associated with the pods in the original traces. The simulator does not really care about simulating the pods' execution times,
+	//			  rather, it cares about the **order** in which pods are created and deleted.
+	//			  The events are stored in "podEvents".
 	var podEvents []*corev1.Pod
 	for _, p := range resourceList.Pods {
-		// pod creation event
+
+		// Create a "pod creation event" which effectively corresponds to the original pod object in which we remove the deletion annotation.
 		podCreate := p.DeepCopy()
 		delete(podCreate.Annotations, gpushareutils.DeletionTime)
 		podEvents = append(podEvents, podCreate)
 
-		// pod deletion event
+		// Create a "pod deletion event" which effectively corresponds to the original pod object in which we remove the creation annotation.
+		// NOTE: if a deletion annotation is not present in the original "p", then no deletion event is created, i.e., the simulator will just create
+		// a pod but won't delete it.
 		deletionTime := gpushareutils.GetDeletionTimeFromPodAnnotation(p)
 		if deletionTime != nil {
 			podDelete := p.DeepCopy()
@@ -655,12 +683,14 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 			podEvents = append(podEvents, podDelete)
 		}
 	}
-	// sort pod creation/deletion events according to timestamp
+
+	// sort the pod creation/deletion events according to their timestamp
 	sort.SliceStable(podEvents, func(i, j int) bool {
 		// c: creation, d: deletion
 		ci, di := gpushareutils.GetCreationTimeFromPodAnnotation(podEvents[i]), gpushareutils.GetDeletionTimeFromPodAnnotation(podEvents[i])
 		cj, dj := gpushareutils.GetCreationTimeFromPodAnnotation(podEvents[j]), gpushareutils.GetDeletionTimeFromPodAnnotation(podEvents[j])
 
+		// Determine if the i-th element considered in podEvents is a creation or deletion event.
 		var ti time.Time
 		if ci != nil {
 			ti = *ci
@@ -668,6 +698,7 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 			ti = *di
 		}
 
+		// Determine if the j-th element considered in podEvents is a creation or deletion event.
 		var tj time.Time
 		if cj != nil {
 			tj = *cj
@@ -676,10 +707,13 @@ func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]sim
 		}
 
 		// undefined goes before all, see simulator.TestSortPodsByTimestamp
+		// NOTE: if both ti and tj are nil (SHOULDN'T happen, if a pod from the YAMLs do not have a creation event, the simulator
+		//       creates a fake one with time.Now()), then Before returns "false". This is consistent with time.Time.
 		return ti.Before(tj)
 	})
 
-	// 4 - Finally, the sorted pod events are passed to a SchedulePods function, which schedules these pods in the simulated Kubernetes cluster.
+	// 4 - Finally, the sorted pod events are passed to a SchedulePods function, which simulates the scheduling start/end of the pods
+	//     in the simulated Kubernetes cluster.
 	failedPods := sim.SchedulePods(podEvents)
 
 	return failedPods, nil
@@ -909,9 +943,12 @@ func (sim *Simulator) getCurrentPodMap() map[string]*corev1.Pod {
 func (sim *Simulator) SetWorkloadPods(pods []*corev1.Pod) {
 	sim.workloadPods = []*corev1.Pod{}
 	for _, p := range pods {
+
+		// Create copies of the original pods from the YAML, and store them in sim.workloadPods.
+		// Remove some annotations, among which the creation and deletion times (sim.workloadPods will be probably not be used
+		// to schedule pods according to the creation and deletion times).
 		pod := MakePodUnassigned(p.DeepCopy())
 		if pod.Spec.NodeSelector != nil {
-			// "delete" is a native Go function used to remove an entry from a map.
 			delete(pod.Spec.NodeSelector, simontype.HostName)
 			delete(pod.Spec.NodeSelector, simontype.NodeIp)
 		}
@@ -928,6 +965,9 @@ func (sim *Simulator) SetWorkloadPods(pods []*corev1.Pod) {
 	})
 }
 
+// This function sorts pods according to their creation time. If two pods have the same creation time, then they are sorted
+// according to their names. This sorting is used as the basis for creating creation and deletion events when scheduling pods.
+// See also the method RunCluster, then syncClusterResourceList.
 func (sim *Simulator) SortClusterPods(pods []*corev1.Pod) {
 	var err error
 	shufflePod := sim.customConfig.ShufflePod

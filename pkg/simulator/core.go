@@ -106,8 +106,8 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	}
 
 	log.Infof("Number of original workload pods: %d", len(cluster.Pods))
-	sim.SetWorkloadPods(cluster.Pods) // Copies the pods from the YAMLs. The method comes from ./pkg/simulator/simulator.go
-	sim.SetTypicalPods()              // Determines the target workload. The method comes from ./pkg/simulator/analysis.go
+	sim.SetWorkloadPods(cluster.Pods) // Create copies of the pods retrieved from the YAMLs for internal purposes. The method comes from ./pkg/simulator/simulator.go
+	sim.SetTypicalPods()              // Determines the target workload from the traces. The method comes from ./pkg/simulator/analysis.go
 	sim.SetSkylinePods()              // The method comes from ./pkg/simulator/analysis.go
 	sim.ClusterGpuFragReport()        // The method comes from ./pkg/simulator/analysis.go. Reports the Gpu Frag Amount of all nodes
 
@@ -122,8 +122,13 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		cluster.Pods = append(cluster.Pods, validPods...)
 	}
 
-	// *** run cluster *** //
-	sim.SortClusterPods(cluster.Pods) // Sort pods according to their creation time from YAML. If this info missing, then use current time.
+	// *** RUN CLUSTER *** //
+
+	// IMPORTANT: sort pod creation and deletion events according to their creation and deletion times from the YAMLs.
+	// NOTE: these events come from the original traces, which are then stored into cluster.Pods.
+	// If creation time is missing, current time is used. In any case, the simulator is interested in the order in which pods
+	// are created and deleted, but it doesn't simulate their execution times, nor how they change if nodes are impacted by some event.
+	sim.SortClusterPods(cluster.Pods)
 	sim.RecordPodTotalResourceReq(cluster.Pods)
 	sim.RecordNodeTotalResource(cluster.Nodes)
 

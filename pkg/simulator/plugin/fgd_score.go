@@ -65,7 +65,7 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	//		    by the pod (if that's the case).
 	podRes := utils.GetPodResource(p)
 	if !utils.IsNodeAccessibleToPod(nodeRes, podRes) {
-		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
+		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU/CPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
 	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod: %+v\n", podRes)

@@ -12,9 +12,10 @@ import (
 )
 
 // PreFilterFragGpuRatio return the fragGpuRatio (0.0-1.0) of the current cluster,
-//	 i.e., how many of the idle GPUs are fragment.
-//   Its output should be cached to plugin.fragGpuRatio to avoid re-computation.
-//   It should be called before filter to avoid the change of visible nodes.
+//
+//		 i.e., how many of the idle GPUs are fragment.
+//	  Its output should be cached to plugin.fragGpuRatio to avoid re-computation.
+//	  It should be called before filter to avoid the change of visible nodes.
 func PreFilterFragGpuRatio(nodeInfoList []*framework.NodeInfo, typicalPods simontype.TargetPodList) (float64, *framework.Status) {
 	data := make([]float64, len(utils.FragRatioDataMap))
 	clusterFragAmount := utils.NewFragAmount("cluster", data)
@@ -42,8 +43,8 @@ func PreFilterFragGpuRatio(nodeInfoList []*framework.NodeInfo, typicalPods simon
 	return fragGpuRatio, framework.NewStatus(framework.Success)
 }
 
-// NormalizeScore in Score Extension.
-//   Reused by all plugins whose scores might go beyond 0(framework.MinNodeScore)--100(framework.MaxNodeScore)
+// Simple NormalizeScore in Score Extension.
+// Reused by all plugins whose scores might go beyond 0(framework.MinNodeScore)--100(framework.MaxNodeScore)
 func NormalizeScore(scores framework.NodeScoreList) *framework.Status {
 	// Find highest and lowest scores.
 	var highest int64 = -math.MaxInt64

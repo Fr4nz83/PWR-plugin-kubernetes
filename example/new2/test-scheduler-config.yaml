@@ -25,7 +25,7 @@ profiles:
           - name: NodeResourcesLeastAllocated
           - name: NodePreferAvoidPods
         enabled:
-          - name: &enabled_score_plugin PWRScore
+          - name: &enabled_score_plugin FGDScore
             weight: 1000
       reserve:
         enabled:
