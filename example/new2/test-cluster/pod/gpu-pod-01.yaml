@@ -14,5 +14,5 @@ spec:
         requests:
           cpu: 8
           memory: 17408Mi
-    nodeSelector:
-      alibabacloud.com/cpu-model: Intel-Xeon-8269CY # Use node selector to specify the CPU model requested by the pod.
+#    nodeSelector:
+#      alibabacloud.com/cpu-model: Intel-Xeon-8269CY # Use node selector to specify the CPU model requested by the pod.

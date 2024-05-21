@@ -504,14 +504,17 @@ func (tnr NodeResource) Add(tpr PodResource, idl []int) (NodeResource, error) {
 // Here, we assume that each GPU is an entire GPU, i.e., not a MiG partition.
 // Moreover, we assume that 2 vCPUs are allocated on a single physical core of some CPU, as indicated in Alibaba docs.
 func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node_GPU_power float64) {
-	// Calculate the number of idling and occupied CPUs and GPUs in the node.
-	GPU_type := tnr.GpuType
-	num_idle_GPUs := float64(tnr.GetFullyFreeGpuNum())
-	num_working_GPUs := float64(tnr.GpuNumber) - num_idle_GPUs
+	// Calculate the energy consumed by the GPU(s) of this node, if any GPU is present.
+	if tnr.GpuType != "" {
+		GPU_type := tnr.GpuType
+		num_idle_GPUs := float64(tnr.GetFullyFreeGpuNum())
+		num_working_GPUs := float64(tnr.GpuNumber) - num_idle_GPUs
 
-	fmt.Printf("GPU type: %s\n", GPU_type)
-	node_GPU_power = gpushareutils.MapGpuTypeModelEnergy[GPU_type](num_idle_GPUs, num_working_GPUs)
+		// fmt.Printf("GPU type: %s\n", GPU_type)
+		node_GPU_power = gpushareutils.MapGpuTypeModelEnergy[GPU_type](num_idle_GPUs, num_working_GPUs)
+	}
 
+	// Calculate the energy consumed by the CPU(s) of this node.
 	CPU_type := tnr.CpuType
 	num_real_cores_node := math.Ceil(float64(tnr.MilliCpuCapacity) / gpushareutils.MILLI / 2)
 	num_idle_cores_node := math.Floor(float64(tnr.MilliCpuLeft) / gpushareutils.MILLI / 2)

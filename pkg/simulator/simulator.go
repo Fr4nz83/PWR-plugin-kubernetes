@@ -299,6 +299,7 @@ func (sim *Simulator) runScheduler() {
 
 func (sim *Simulator) createPod(p *corev1.Pod) error {
 	fmt.Printf("DEBUG FRA, simulator.go.createPod => executing createPod!\n")
+	fmt.Printf("DEBUG FRA, simulator.go.createPod => Resources requested from pod: %+v\n", utils.GetPodResource(p))
 
 	// Attempt to create, and thus also schedule, the pod via the Kubernetes client.
 	if _, err := sim.client.CoreV1().Pods(p.Namespace).Create(sim.ctx, p, metav1.CreateOptions{}); err != nil {

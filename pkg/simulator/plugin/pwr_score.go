@@ -45,8 +45,17 @@ func (plugin *PWRScorePlugin) Name() string {
 }
 
 func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleState, p *v1.Pod, nodeName string) (int64, *framework.Status) {
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Scoring node %s w.r.t. pod %s!\n", nodeName, p.Name)
-	// fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => current time: %s\n", time.Now())
+	// DEBUG: print the gpu type(s) requested by the pod.
+	pod_GPU_type := gpushareutils.GetGpuModelFromPodAnnotation(p)
+	if pod_GPU_type == "" {
+		if gpushareutils.GetGpuMilliFromPodAnnotation(p) > 0 {
+			pod_GPU_type = "GENERIC"
+		} else {
+			pod_GPU_type = "NONE"
+		}
+	}
+	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
+		nodeName, p.Name, pod_GPU_type)
 
 	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
 	// "PodRequestsAndLimits()" returns a dictionary of all defined resources summed up for all containers of the pod.
@@ -105,7 +114,7 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 		}
 	}
 
-	// If all the scores are 0, then we can immediately exit.
+	// Case where all the scores are 0: set them to 100 and return.
 	if minScore == maxScore {
 		fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): all the scores are equal.\n")
 
