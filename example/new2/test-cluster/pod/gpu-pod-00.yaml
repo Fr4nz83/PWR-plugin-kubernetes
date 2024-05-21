@@ -6,8 +6,7 @@ metadata:
   annotations:
     alibabacloud.com/gpu-milli: "500"
     alibabacloud.com/gpu-count: "1"
-    # alibabacloud.com/cpu-model: Intel # Specifies the CPU model(s) requested by the pod. If multiple models are accepted, these must be separated by "|", e.g., "V100|A100"
-    # alibabacloud.com/gpu-card-model: V100 # Specifies the GPU model(s) requested by the pod. If multiple models are accepted, these must be separated by "|".
+    alibabacloud.com/gpu-card-model: V100M16 # Specifies the GPU model(s) requested by the pod. If multiple models are accepted, these must be separated by "|".
 spec:
     containers:
     - image: tensorflow:latest

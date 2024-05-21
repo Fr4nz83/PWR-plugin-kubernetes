@@ -81,7 +81,7 @@ func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	// Step 4 - compute the score of a node w.r.t. the considered pod.
 	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
 	//		    schedule the pod on it -- the more the increase, the worst the score.
-	score, _ := calculatePWRShareFragExtendScore(nodeRes, podRes, plugin.typicalPods)
+	score, _ := calculatePWRShareExtendScore(nodeRes, podRes, plugin.typicalPods)
 	return score, framework.NewStatus(framework.Success)
 }
 
@@ -129,7 +129,7 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
 // and then measure how much the node's power consumption increases.
-func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ *simontype.TargetPodList) (score int64, gpuId string) {
+func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ *simontype.TargetPodList) (score int64, gpuId string) {
 	// Compute the node's current power consumption.
 	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
 	old_node_energy := old_CPU_energy + old_GPU_energy
@@ -181,9 +181,10 @@ func calculatePWRShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 	}
 }
 
-// Understand if it makes sense that the PWR plugin uses this function.
+// This function selects the best GPU(s) found in a given node. It essentially re-executes the allocateGpuIdBasedOnPWRScore function
+// executed within Score(), but it considers only the best GPU(s) for a pod found in a node and ignores the computed score.
 func allocateGpuIdBasedOnPWRScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
 	fmt.Printf("DEBUG FRA, plugin.pwr_score.allocateGpuIdBasedOnPWRScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
-	_, gpuId = calculatePWRShareFragExtendScore(nodeRes, podRes, typicalPods)
+	_, gpuId = calculatePWRShareExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
 }

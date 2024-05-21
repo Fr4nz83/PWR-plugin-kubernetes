@@ -37,28 +37,73 @@ var MapGpuTypeMemoryMiB = map[string]int64{
 	"G3":      int64(31457280000 / 1024 / 1024), // 30000 MiB,
 }
 
+// The map of maps below stores the idle/max power consumption (in watts), as well as the number of cores, of several CPU models.
+// used in common Alibaba instances.
+//
+// NOTE: information concerning the instances typically found in Alibaba clusters can be found at:
+// https://www.alibabacloud.com/help/en/ecs/user-guide/overview-of-instance-families
+// https://www.alibabacloud.com/en/product/ecs-pricing-list/en?_p_lc=1#/?_k=8oavlr
+// The first link does not contain any references to instances with A100, but the second one does.
+// TODO: check if there are better references for the power consumed in idle state.
+var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
+	"":                      {"idle": float64(35), "full": float64(300), "ncores": float64(32)}, // If no node's CPU type is provided (shouldn't happen!), assume this CPU profile.
+	"Intel-Xeon-8269CY":     {"idle": float64(20), "full": float64(205), "ncores": float64(26)}, // Used on non-GPU nodes.
+	"Intel-Xeon-8163":       {"idle": float64(20), "full": float64(165), "ncores": float64(24)}, // Used in instances with NVIDIA T4
+	"Intel-Xeon-ES-2682-V4": {"idle": float64(15), "full": float64(120), "ncores": float64(16)}, // Used in instances with NVIDIA P100
+	"Intel-Xeon-6326":       {"idle": float64(20), "full": float64(185), "ncores": float64(16)}, // Used in instances with NVIDIA V100
+	"Intel-Xeon-8369B":      {"idle": float64(20), "full": float64(270), "ncores": float64(32)}, // Used in instances with NVIDIA A100
+}
+
 // The map of maps below stores the idle/max power consumption of several GPUs (in watt).
 // We only consider the case in which a GPU's cores are not physically partitioned, e.g., MiG.
 // TDP ratings can be easily found in official docs, however power consumptions when idling are not easy to find.
 //
 // TODO2: SALVO => in futuro, sostituire le costanti con funzioni che modellano il consumo energetico in funzione del workload.
 var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
-	"T4":   {"idle": float64(10), "full": float64(70)},  // From https://www.nvidia.com/it-it/data-center/tesla-t4/
-	"A10":  {"idle": float64(30), "full": float64(150)}, // From https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a10/pdf/a10-datasheet.pdf
-	"P100": {"idle": float64(30), "full": float64(250)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
-	"V100": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
-	"A100": {"idle": float64(50), "full": float64(400)}, // From https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
+	"T4":      {"idle": float64(10), "full": float64(70)},  // From https://www.nvidia.com/it-it/data-center/tesla-t4/
+	"A10":     {"idle": float64(30), "full": float64(150)}, // From https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a10/pdf/a10-datasheet.pdf
+	"P100":    {"idle": float64(25), "full": float64(250)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
+	"V100M16": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
+	"V100M32": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
+	"A100":    {"idle": float64(50), "full": float64(400)}, // From https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
 }
 
-// The map of maps below stores the idle/max power consumption (in watts), as well as the number of cores, of several CPU models.
-//
-// NOTE: information concerning the instances typically found in Alibaba clusters can be found at:
-// https://www.alibabacloud.com/help/en/ecs/user-guide/overview-of-instance-families
-// https://www.alibabacloud.com/en/product/ecs-pricing-list/en?_p_lc=1#/?_k=8oavlr
-// The first link does not contain any references to instances with A100, but the second one does.
-//
-// TODO: populate the table with the CPU(s) used in typical Alibaba clusters.
-var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
-	"":      {"idle": float64(35), "full": float64(300), "ncores": float64(32)}, // If no node's CPU type is provided (shouldn't happen!), assume this CPU profile.
-	"Intel": {"idle": float64(15), "full": float64(200), "ncores": float64(16)}, // If no node's CPU type is provided (shouldn't happen!), assume this CPU profile.
+func modelEnergyNodeT4(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["T4"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["T4"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeA10(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["A10"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["A10"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeP100(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["P100"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["P100"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeV100M16(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["V100M16"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["V100M16"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeV100M32(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["V100M32"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["V100M32"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeA100(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["A100"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["A100"]["full"] * num_occupied_GPUs)
+}
+
+// Initialize the map with the wrapper functions
+var MapGpuTypeModelEnergy = map[string]func(float64, float64) float64{
+	"T4":      modelEnergyNodeT4,
+	"A10":     modelEnergyNodeA10,
+	"P100":    modelEnergyNodeP100,
+	"V100M16": modelEnergyNodeV100M16,
+	"V100M32": modelEnergyNodeV100M32,
+	"A100":    modelEnergyNodeA100,
 }

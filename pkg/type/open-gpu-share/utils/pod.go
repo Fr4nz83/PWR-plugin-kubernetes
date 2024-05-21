@@ -76,11 +76,20 @@ func GetGpuModelFromPodAnnotation(pod *v1.Pod) (gpuType string) {
 }
 
 func GetCpuModelFromPodAnnotation(pod *v1.Pod) (cpuType string) {
+	// Check if the cpu model requested by the pod is in its list of annotations.
 	if len(pod.ObjectMeta.Annotations) > 0 {
 		if value, found := pod.ObjectMeta.Annotations[CpuModelName]; found {
 			cpuType += value
 		}
 	}
+
+	// Alternatively, check if it is in its list of node selectors.
+	if (cpuType == "") && (len(pod.Spec.NodeSelector) > 0) {
+		if value, found := pod.Spec.NodeSelector[CpuModelName]; found {
+			cpuType += value
+		}
+	}
+
 	return cpuType
 }
 

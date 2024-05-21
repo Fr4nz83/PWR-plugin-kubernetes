@@ -97,9 +97,7 @@ func (plugin *GpuSharePlugin) Filter(ctx context.Context, state *framework.Cycle
 	// Reject if the GPU or CPU types do not match
 	nodeGpuType := gpushareutils.GetGpuModelOfNode(node)
 	podGpuType := gpushareutils.GetGpuModelFromPodAnnotation(pod)
-	nodeCpuType := gpushareutils.GetCpuModelOfNode(node)
-	podCpuType := gpushareutils.GetCpuModelFromPodAnnotation(pod)
-	if !utils.IsNodeAccessibleToPodByType(nodeGpuType, podGpuType, nodeCpuType, podCpuType) {
+	if !utils.IsNodeAccessibleToPodByType(nodeGpuType, podGpuType) {
 		fmt.Printf("DEBUG FRA, open_gpu_share.go.Filter() => unschedulable (2) pod %s/%s on nodeName %s\n", pod.Namespace, pod.Name, nodeInfo.Node().Name)
 		return framework.NewStatus(framework.Unschedulable, "Node:"+nodeInfo.Node().Name)
 	}

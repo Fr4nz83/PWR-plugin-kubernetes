@@ -93,11 +93,11 @@ func New(opts ...Option) (Interface, error) {
 	// Below we are thus executing these functions, i.e., opt(&options), whose input parameters have been passed in .pkg/simulator/core.go, each initializing a
 	// field of the instantiated simulatorOptions struct (i.e., options).
 	options := defaultSimulatorOptions
-	fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
+	// fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 	for _, opt := range opts {
 		opt(&options)
 	}
-	fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
+	// fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 
 	// Get scheduler config and set the list of scheduler bind plugins to the simulator.
 	// Here we unmarshal the content within the YAML file pointed by "options.schedulerConfig" in the field "kubeSchedulerConfig".
@@ -322,7 +322,6 @@ func (sim *Simulator) createPod(p *corev1.Pod) error {
 		}
 	} else {
 		fmt.Printf("DEBUG FRA, simulator.go.createPod => pod(%s) not created, should not happen\n", utils.GeneratePodKey(p))
-
 		log.Errorf("[createPod] pod(%s) not created, should not happen", utils.GeneratePodKey(p))
 	}
 

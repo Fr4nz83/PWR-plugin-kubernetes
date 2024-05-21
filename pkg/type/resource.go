@@ -509,8 +509,8 @@ func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node
 	num_idle_GPUs := float64(tnr.GetFullyFreeGpuNum())
 	num_working_GPUs := float64(tnr.GpuNumber) - num_idle_GPUs
 
-	node_GPU_power = (gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["idle"] * num_idle_GPUs) +
-		(gpushareutils.MapGpuTypeEnergyConsumption[GPU_type]["full"] * num_working_GPUs)
+	fmt.Printf("GPU type: %s\n", GPU_type)
+	node_GPU_power = gpushareutils.MapGpuTypeModelEnergy[GPU_type](num_idle_GPUs, num_working_GPUs)
 
 	CPU_type := tnr.CpuType
 	num_real_cores_node := math.Ceil(float64(tnr.MilliCpuCapacity) / gpushareutils.MILLI / 2)

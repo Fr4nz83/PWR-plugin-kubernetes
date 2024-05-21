@@ -950,15 +950,13 @@ func GetAllocatablePodList(clientset externalclientset.Interface) []corev1.Pod {
 func IsNodeAccessibleToPod(nodeRes simontype.NodeResource, podRes simontype.PodResource) bool {
 	pt := podRes.GpuType
 	nt := nodeRes.GpuType
-	pct := podRes.CpuType
-	nct := nodeRes.CpuType
-	return IsNodeAccessibleToPodByType(nt, pt, nct, pct)
+	return IsNodeAccessibleToPodByType(nt, pt)
 }
 
 // Check if at least one of the CPU and GPU types requested by a pod (if any) are present in the considered node.
-func IsNodeAccessibleToPodByType(nodeGpuType string, podGpuType string, nodeCpuType string, podCpuType string) bool {
-	// If the pod does not have any preference for GPUs and CPUs, then return true.
-	if len(podGpuType) == 0 && len(podCpuType) == 0 {
+func IsNodeAccessibleToPodByType(nodeGpuType string, podGpuType string) bool {
+	// If the pod does not have any preference for GPUs, then return true.
+	if len(podGpuType) == 0 {
 		return true
 	}
 	// if len(nodeGpuType) == 0 {
@@ -998,24 +996,7 @@ func IsNodeAccessibleToPodByType(nodeGpuType string, podGpuType string, nodeCpuT
 		checkGPU = true
 	}
 
-	// Check if the node has a CPU model requested by the pod.
-	podCpuTypeList := strings.Split(podCpuType, "|")
-	cnt = 0
-	checkCPU := false
-	for _, cpuType := range podCpuTypeList {
-		if len(cpuType) == 0 {
-			continue
-		}
-		cnt++
-		if cpuType == nodeCpuType {
-			checkCPU = true
-		}
-	}
-	if !checkCPU && (cnt == 0) {
-		checkCPU = true
-	}
-
-	return checkGPU && checkCPU
+	return checkGPU
 
 	// if cnt > 0 { // pod requests at least one specific GPU type but node doesn't match
 	//	return false

@@ -126,6 +126,7 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 	} else {
 		// Subtract the node's resources that would be taken by the pod once scheduled on it.
 		newNodeRes, _ := nodeRes.Sub(podRes)
+
 		// Compute the node's fragmentation, with the updated resource availability, considering the target workload.
 		newNodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(newNodeRes, *typicalPods)
 
@@ -136,6 +137,8 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 	}
 }
 
+// This function selects the best GPU(s) found in a given node. It essentially re-executes the calculateGpuShareFragExtendScore function
+// executed within Score(), but it considers only the best GPU(s) for a pod found in a node.
 func allocateGpuIdBasedOnFGDScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
 	_, gpuId = calculateGpuShareFragExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
