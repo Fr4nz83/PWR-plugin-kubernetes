@@ -56,23 +56,23 @@ type Interface interface {
 func NewApplier(opts Options) Interface {
 	simonCR := &v1alpha1.Simon{}
 
-	fmt.Printf("DEBUG FRA => executing function NewApplier!\n") // Content struct Options: %+v\n", opts)
-	// fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Simon (1): %+v\n", simonCR)
+	// log.Infof("DEBUG FRA => executing function NewApplier!\n") // Content struct Options: %+v\n", opts)
+	// log.Infof("DEBUG FRA => executing function NewApplier! Content struct Simon (1): %+v\n", simonCR)
 
 	// Read Simon's YAML config file (the one passed via the -f flag).
-	fmt.Printf("DEBUG FRA => trying reading SimonConfig file: %s\n", opts.SimonConfig)
+	// log.Infof("DEBUG FRA => trying reading SimonConfig file: %s\n", opts.SimonConfig)
 	configFile, err := ioutil.ReadFile(opts.SimonConfig)
 	if err != nil {
 		log.Fatalf("failed to read config file(%s): %v", opts.SimonConfig, err)
 	}
-	// fmt.Printf("DEBUG FRA => SimonConfig YAML content: %s\n", configFile)
+	// log.Infof("DEBUG FRA => SimonConfig YAML content: %s\n", configFile)
 
 	// Unmarshal Simon's config file from YAML to JSON.
 	configJSON, err := yaml.YAMLToJSON(configFile)
 	if err != nil {
 		log.Fatalf("failed to unmarshal config file(%s) to json: %v", opts.SimonConfig, err)
 	}
-	// fmt.Printf("DEBUG FRA => SimonConfig JSON content: %s\n", configJSON)
+	// log.Infof("DEBUG FRA => SimonConfig JSON content: %s\n", configJSON)
 
 	// Unmarshal Simon's config file from JSON to object of type Simon (see also the package v1alpha1).
 	// NOTE: at this point, the application, via the config file, can see how the nodes in the cluster are made, and the pods that must
@@ -80,7 +80,7 @@ func NewApplier(opts Options) Interface {
 	if err := json.Unmarshal(configJSON, simonCR); err != nil {
 		log.Fatalf("failed to unmarshal config json to object: %v", err)
 	}
-	// fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Simon (2): %+v\n", simonCR)
+	// log.Infof("DEBUG FRA => executing function NewApplier! Content struct Simon (2): %+v\n", simonCR)
 
 	applier := &Applier{
 		cluster:           simonCR.Spec.Cluster,
@@ -91,7 +91,7 @@ func NewApplier(opts Options) Interface {
 		interactive:       opts.Interactive,
 		extendedResources: opts.ExtendedResources,
 	}
-	// fmt.Printf("DEBUG FRA => executing function NewApplier! Content struct Applier: %+v\n", applier)
+	// log.Infof("DEBUG FRA => executing function NewApplier! Content struct Applier: %+v\n", applier)
 
 	// Check (validate) if the information pertaining to the simulated cluster's configuration is correct.
 	if err := validate(applier); err != nil {
@@ -114,19 +114,19 @@ func (applier *Applier) Run() (err error) {
 	// Convert the application files into the kubernetes objects and generate a ResourceTypes struct, then make a resource list
 	// NOTE: the struct "simulator.ResourceTypes" comes from "./pkg/simulator/core.go".
 	// NOTE 2: appList does not seem to be present in the YAML files used with the simulator. To be checked.
-	fmt.Printf("DEBUG FRA, apply.go.Run() => number of applications in the appList: %d\n", len(applier.appList))
+	log.Infof("DEBUG FRA, apply.go.Run() => number of applications in the appList: %d\n", len(applier.appList))
 	var appResource simulator.ResourceTypes
 	for _, app := range applier.appList {
 		// process separately chart and other file
 		if app.Chart {
-			fmt.Printf("DEBUG FRA, apply.go.Run() => application files are located into a Helm chart. Converting...\n")
+			log.Infof("DEBUG FRA, apply.go.Run() => application files are located into a Helm chart. Converting...\n")
 
 			// parse and render chart as a yaml array
 			if content, err = chart.ProcessChart(app.Name, app.Path); err != nil {
 				return err
 			}
 		} else {
-			fmt.Printf("DEBUG FRA, apply.go.Run() => application files are located into a YAML. Loading and converting its content into Kubernetes objects...\n")
+			log.Infof("DEBUG FRA, apply.go.Run() => application files are located into a YAML. Loading and converting its content into Kubernetes objects...\n")
 
 			if content, err = utils.GetYamlContentFromDirectory(app.Path); err != nil {
 				return err
@@ -147,7 +147,7 @@ func (applier *Applier) Run() (err error) {
 	//       to instantiate the various Kubernetes objects.
 	var clusterResource simulator.ResourceTypes
 	if applier.cluster.KubeConfig != "" {
-		fmt.Printf("DEBUG FRA, apply.go.Run() Run() => KubeConfig found!\n")
+		log.Infof("DEBUG FRA, apply.go.Run() Run() => KubeConfig found!\n")
 
 		// generate kube-client
 		kubeclient, err := utils.CreateKubeClient(applier.cluster.KubeConfig)
@@ -158,19 +158,19 @@ func (applier *Applier) Run() (err error) {
 			return err
 		}
 	} else {
-		fmt.Printf("DEBUG FRA, apply.go.Run() Run() => Simulated cluster config found!\n")
+		log.Infof("DEBUG FRA, apply.go.Run() Run() => Simulated cluster config found!\n")
 		if clusterResource, err = simulator.CreateClusterResourceFromClusterConfig(applier.cluster.CustomCluster); err != nil {
 			return err
 		}
 	}
-	// fmt.Printf("DEBUG FRA, apply.go.Run() Run() => Simulated cluster config: %+v\n", clusterResource)
+	// log.Infof("DEBUG FRA, apply.go.Run() Run() => Simulated cluster config: %+v\n", clusterResource)
 
 	// confirm the list of applications that need to be deployed in interactive mode
 	// NOTE: this actually seems to be used just for debugging purposes.
 	var selectedAppNameList []string
 	var selectedResourceList []simulator.AppResource
 	if applier.interactive {
-		fmt.Printf("DEBUG FRA, apply.go.Run() Run() => interactive mode is enabled.\n")
+		log.Infof("DEBUG FRA, apply.go.Run() Run() => interactive mode is enabled.\n")
 		var multiQs = []*survey.Question{
 			{
 				Name: "APPs",
@@ -194,8 +194,8 @@ func (applier *Applier) Run() (err error) {
 		})
 	}
 
-	// fmt.Printf("DEBUG FRA: clusterResource content: %+v\n", clusterResource)
-	// fmt.Printf("DEBUG FRA: clusterResource content: %+v\n", selectedResourceList)
+	// log.Infof("DEBUG FRA: clusterResource content: %+v\n", clusterResource)
+	// log.Infof("DEBUG FRA: clusterResource content: %+v\n", selectedResourceList)
 
 	// *** Run the simulator *** //
 	// NOTE: Simulate() represents the entry point to the simulator.

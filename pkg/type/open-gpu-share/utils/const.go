@@ -66,6 +66,9 @@ var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 	"V100M16": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
 	"V100M32": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
 	"A100":    {"idle": float64(50), "full": float64(400)}, // From https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
+	"G1":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
+	"G2":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
+	"G3":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
 }
 
 func modelEnergyNodeT4(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
@@ -98,6 +101,21 @@ func modelEnergyNodeA100(num_idle_GPUs float64, num_occupied_GPUs float64) (powe
 		(MapGpuTypeEnergyConsumption["A100"]["full"] * num_occupied_GPUs)
 }
 
+func modelEnergyNodeG1(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["G1"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["G1"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeG2(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["G2"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["G2"]["full"] * num_occupied_GPUs)
+}
+
+func modelEnergyNodeG3(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
+	return (MapGpuTypeEnergyConsumption["G3"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["G3"]["full"] * num_occupied_GPUs)
+}
+
 // Initialize the map with the wrapper functions
 var MapGpuTypeModelEnergy = map[string]func(float64, float64) float64{
 	"T4":      modelEnergyNodeT4,
@@ -106,4 +124,7 @@ var MapGpuTypeModelEnergy = map[string]func(float64, float64) float64{
 	"V100M16": modelEnergyNodeV100M16,
 	"V100M32": modelEnergyNodeV100M32,
 	"A100":    modelEnergyNodeA100,
+	"G1":      modelEnergyNodeG1,
+	"G2":      modelEnergyNodeG2,
+	"G3":      modelEnergyNodeG3,
 }

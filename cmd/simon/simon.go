@@ -2,10 +2,11 @@ package simon
 
 import (
 	goflag "flag"
+	"os"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	cliflag "k8s.io/component-base/cli/flag"
-	"os"
 
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/cmd/apply"
 	"github.com/hkust-adsl/kubernetes-scheduler-simulator/cmd/doc"
@@ -35,11 +36,11 @@ func NewSimonCommand() *cobra.Command {
 	// Add the cobra commands defined in the other packages within "./cmd".
 	// NOTE: the "." operator in go automatically dereferences a pointer, if it is used with a pointer.
 	simonCmd.AddCommand(version.VersionCmd,
-			    apply.ApplyCmd,
-			    doc.GenDoc.DocCmd,)
-	
+		apply.ApplyCmd,
+		doc.GenDoc.DocCmd)
+
 	// NOTE: cliflag.WordSepNormalizeFunc is a function provided by the cliflag packagethat normalizes flag names from camelCase to words separated by dashes.
-	// When users run, e.g., simon apply --num-iterations 5, the normalization function ensures that numIterations is correctly recognized as the flag numIterations.   
+	// When users run, e.g., simon apply --num-iterations 5, the normalization function ensures that numIterations is correctly recognized as the flag numIterations.
 	simonCmd.SetGlobalNormalizationFunc(cliflag.WordSepNormalizeFunc)
 	// Note: This line adds all Go flags from the goflag.CommandLine flag set to the flags of the simonCmd command.
 	simonCmd.Flags().AddGoFlagSet(goflag.CommandLine)

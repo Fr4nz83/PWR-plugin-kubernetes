@@ -26,11 +26,13 @@ SCORE_POLICY_ABBR = {
     "GpuPackingScore":    "GpuPacking",
     "BestFitScore":       "BestFit",
     "FGDScore":           "FGD",
+    "PWRScore":           "PWR",
 }
 
 SCORE_PLUGINS_WITH_DIM_NORM_GPU_METHOD = [
     "DotProductScore", # dot product
     "FGDScore",        # FGD
+    "PWRScore",        # PWR
 ]
 SCORE_PLUGINS_WITH_PRE_FILTER = [
 ]
@@ -209,6 +211,7 @@ profiles:
           - name: GpuPackingScore
           - name: BestFitScore
           - name: FGDScore
+          - name: PWRScore
           # 
           - name: ImageLocality
           - name: NodeAffinity
@@ -374,6 +377,7 @@ def exp(args):
     if cluster_file and scheduler_file:
         log_dir = expdir
         log_file = log_dir / ("log%s%s%s%s.log" % (LOGSEP, cluster_file.name, LOGSEP, scheduler_file.name))
+        
         ## start experiments
         command = './bin/simon apply --extended-resources "gpu" -f %s --default-scheduler-config %s' % (cluster_file, scheduler_file)
         print("    Ex:", command)

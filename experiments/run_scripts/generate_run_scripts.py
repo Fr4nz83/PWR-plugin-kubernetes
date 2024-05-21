@@ -9,10 +9,10 @@ FILELIST = [
     #: Main results in Fig. 7 and 9
     "data/openb_pod_list_default",
     #: Fig. 14 Various proportion of non-GPU tasks
-    "data/openb_pod_list_cpu050",
-    "data/openb_pod_list_cpu100",
-    "data/openb_pod_list_cpu200",
-    "data/openb_pod_list_cpu250",
+#    "data/openb_pod_list_cpu050",
+#    "data/openb_pod_list_cpu100",
+#    "data/openb_pod_list_cpu200",
+#    "data/openb_pod_list_cpu250",
     #: Fig. 11 Various proportion of GPU-sharing tasks
     "data/openb_pod_list_gpushare100",
     "data/openb_pod_list_gpushare40",
@@ -24,19 +24,20 @@ FILELIST = [
     "data/openb_pod_list_gpuspec25",
     "data/openb_pod_list_gpuspec33",
     #: Fig. 12 Various proportion of multi-GPU tasks
-    "data/openb_pod_list_multigpu20",
-    "data/openb_pod_list_multigpu30",
-    "data/openb_pod_list_multigpu40",
-    "data/openb_pod_list_multigpu50",
+#    "data/openb_pod_list_multigpu20",
+#    "data/openb_pod_list_multigpu30",
+#    "data/openb_pod_list_multigpu40",
+#    "data/openb_pod_list_multigpu50",
 ]
 
 AllMethodList = [
     ["01", "Random", "random", "<none>", "<none>"],
-    ["02", "DotProd", "best", "merge", "max"],
-    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
-    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
-    ["05", "BestFit", "<none>", "<none>", "<none>"],
+#    ["02", "DotProd", "best", "merge", "max"],
+#    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
+#    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
+#    ["05", "BestFit", "<none>", "<none>", "<none>"],
     ["06", "FGD", "<self>", "share", "max"],
+    ["07", "PWR", "<self>", "share", "max"],
 ]
 
 AllMethodDict = {}
@@ -51,11 +52,12 @@ MethodList = AllMethodList.copy()
 
 MethodList = [
     ["01", "Random", "random", "<none>", "<none>"],
-    ["02", "DotProd", "best", "merge", "max"],
-    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
-    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
-    ["05", "BestFit", "<none>", "<none>", "<none>"],
+#    ["02", "DotProd", "best", "merge", "max"],
+#    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
+#    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
+#    ["05", "BestFit", "<none>", "<none>", "<none>"],
     ["06", "FGD", "<self>", "share", "max"],
+    ["07", "PWR", "<self>", "share", "max"],
 ]
 
 def get_dir_name_from_method(method_input):

@@ -86,7 +86,7 @@ type Interface interface {
 func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simontype.SimulateResult, error) {
 
 	// Instantiate object representing the simulator.
-	fmt.Printf("DEBUG FRA, core.go.Simulate(): initialize the simulator's config options.\n")
+	log.Infof("DEBUG FRA, core.go.Simulate(): initialize the simulator's config options.\n")
 	sim, err := New(opts...)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	// Given the pods from the YAMLs, adjust the number of pods that will be scheduled on the nodes according to the cluster capacity
 	// and a ratio passed.
 	if customConfig.WorkloadTuningConfig.Ratio > 0 {
-		fmt.Printf("DEBUG FRA, core.go.Simulate() => Tuning the workload (ratio %f)\n", customConfig.WorkloadTuningConfig.Ratio)
+		log.Infof("DEBUG FRA, core.go.Simulate() => Tuning the workload (ratio %f)\n", customConfig.WorkloadTuningConfig.Ratio)
 		// <= 0 means no tuning, keeping the cluster.Pods == sim.workloadPods
 		// NOTE: prune or append pods to match the cfg.Ratio * (cluster_GPU_capacity)
 		cluster.Pods = sim.TunePodsByNodeTotalResource(cluster.Pods, customConfig.WorkloadTuningConfig)
@@ -143,22 +143,22 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 
 	// IMPORTANT: RunCluster(), which comes from ./pkg/simulator/simulator.go, seems to be the most important method of the simulator,
 	// the one actually running the simulation. It starts the scheduler in background, and then starts to schedule pods on nodes.
-	fmt.Printf("DEBUG FRA, core.go.Simulate(): executing RunCluster().\n")
+	log.Infof("DEBUG FRA, core.go.Simulate(): executing RunCluster().\n")
 	var failedPods []simontype.UnscheduledPod
 	unscheduledPods, err := sim.RunCluster(cluster) // Existing pods in the cluster are scheduled here.
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("DEBUG FRA, core.go.Simulate(): finished executing RunCluster().\n")
+	log.Infof("DEBUG FRA, core.go.Simulate(): finished executing RunCluster().\n")
 
-	fmt.Printf("DEBUG FRA, core.go.Simulate(): taking note of unscheduled pods.\n")
+	log.Infof("DEBUG FRA, core.go.Simulate(): taking note of unscheduled pods.\n")
 	failedPods = append(failedPods, unscheduledPods...)
 	utils.ReportFailedPods(failedPods)
 	sim.ClusterAnalysis(TagInitSchedule)
 
 	// export a cluster snapshot after scheduling
 	if customConfig.ExportConfig.PodSnapshotYamlFilePrefix != "" {
-		fmt.Printf("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a YAML file after scheduling.\n")
+		log.Infof("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a YAML file after scheduling.\n")
 		// filePath: prefix/InitSchedule/pod-snapshot.yaml
 		prefix := customConfig.ExportConfig.PodSnapshotYamlFilePrefix
 		fileDir := fmt.Sprintf("%s/%s", prefix, TagInitSchedule)
@@ -170,7 +170,7 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 		}
 	}
 	if customConfig.ExportConfig.NodeSnapshotCSVFilePrefix != "" {
-		fmt.Printf("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a CSV file after scheduling.\n")
+		log.Infof("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a CSV file after scheduling.\n")
 		// filePath: prefix/InitSchedule/node-snapshot.csv
 		prefix := customConfig.ExportConfig.NodeSnapshotCSVFilePrefix
 		fileDir := fmt.Sprintf("%s/%s", prefix, TagInitSchedule)
@@ -187,13 +187,13 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	// NOTE: this does not seem to be executed in the simple example.
 	// TODO: Check if it is used in the experimental evaluation of the USENIX paper (probably yes).
 	if customConfig.WorkloadInflationConfig.Ratio > 1 {
-		fmt.Printf("DEBUG FRA, core.go.Simulate(): executing RunWorkloadInflationEvaluation().\n")
+		log.Infof("DEBUG FRA, core.go.Simulate(): executing RunWorkloadInflationEvaluation().\n")
 		sim.RunWorkloadInflationEvaluation(TagScheduleInflation)
 	}
 
 	// NOTE: not clear if this part will be relevant in the simulations. Keep an eye on it.
 	if customConfig.NewWorkloadConfig != "" {
-		fmt.Printf("DEBUG FRA, core.go.Simulate(): customConfig.NewWorkloadConfig not empty.\n")
+		log.Infof("DEBUG FRA, core.go.Simulate(): customConfig.NewWorkloadConfig not empty.\n")
 		resources, err := CreateClusterResourceFromClusterConfig(customConfig.NewWorkloadConfig)
 		if err != nil {
 			return nil, err
@@ -211,14 +211,14 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	// evict some pods in the cluster and reschedule them
 	// NOTE: not sure if the code below will be actually used in the simulations, to be checked.
 	if customConfig.DescheduleConfig.Policy != "" {
-		fmt.Printf("DEBUG FRA, core.go.Simulate(): descheduling plugin being used!\n")
+		log.Infof("DEBUG FRA, core.go.Simulate(): descheduling plugin being used!\n")
 		unscheduledPods = sim.DescheduleCluster()
 		failedPods = append(failedPods, unscheduledPods...)
 		sim.ClusterAnalysis(TagPostDeschedule)
 		sim.ClusterGpuFragReport()
 
 		if customConfig.ExportConfig.PodSnapshotYamlFilePrefix != "" {
-			fmt.Printf("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a YAML file after evict and reschedule.\n")
+			log.Infof("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a YAML file after evict and reschedule.\n")
 			// filePath: prefix/PostDeschedule/pod-snapshot.yaml
 			prefix := customConfig.ExportConfig.PodSnapshotYamlFilePrefix
 			fileDir := fmt.Sprintf("%s/%s", prefix, TagPostDeschedule)
@@ -230,7 +230,7 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 			}
 		}
 		if customConfig.ExportConfig.NodeSnapshotCSVFilePrefix != "" {
-			fmt.Printf("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a CSV file after evict and reschedule.\n")
+			log.Infof("DEBUG FRA, core.go.Simulate(): exporting cluster snapshot to a CSV file after evict and reschedule.\n")
 			// filePath: prefix/PostDeschedule/node-snapshot.csv
 			prefix := customConfig.ExportConfig.NodeSnapshotCSVFilePrefix
 			fileDir := fmt.Sprintf("%s/%s", prefix, TagPostDeschedule)
@@ -261,7 +261,6 @@ func Simulate(cluster ResourceTypes, apps []AppResource, opts ...Option) (*simon
 	}
 
 	// Return the final results.
-	fmt.Printf("DEBUG FRA, simulate.Simulate(): returning the final results.\n")
 	return &simontype.SimulateResult{
 		UnscheduledPods: failedPods,
 		NodeStatus:      sim.GetClusterNodeStatus(),

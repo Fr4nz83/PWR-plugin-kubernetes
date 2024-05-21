@@ -93,11 +93,11 @@ func New(opts ...Option) (Interface, error) {
 	// Below we are thus executing these functions, i.e., opt(&options), whose input parameters have been passed in .pkg/simulator/core.go, each initializing a
 	// field of the instantiated simulatorOptions struct (i.e., options).
 	options := defaultSimulatorOptions
-	// fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
+	// log.Debugf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 	for _, opt := range opts {
 		opt(&options)
 	}
-	// fmt.Printf("DEBUG FRA simulator.New(): options content: %+v\n", options)
+	// log.Debugf("DEBUG FRA simulator.New(): options content: %+v\n", options)
 
 	// Get scheduler config and set the list of scheduler bind plugins to the simulator.
 	// Here we unmarshal the content within the YAML file pointed by "options.schedulerConfig" in the field "kubeSchedulerConfig".
@@ -113,7 +113,7 @@ func New(opts ...Option) (Interface, error) {
 	// NOTE: the fake client is used in the case a simulation is done.
 	var client externalclientset.Interface
 	if options.kubeconfig != "" {
-		fmt.Printf("DEBUG FRA simulator.New(): creating real client.\n")
+		log.Debugf("DEBUG FRA simulator.New(): creating real client.\n")
 		varConfig, err := clientcmd.BuildConfigFromFlags("", options.kubeconfig)
 		if err != nil {
 			log.Errorf("%s\n", err.Error())
@@ -121,7 +121,7 @@ func New(opts ...Option) (Interface, error) {
 		client, err = externalclientset.NewForConfig(varConfig)
 	} else {
 		// NOTE: the fake client's implementation comes from a Kubernetes Go library, see the imports.
-		fmt.Printf("DEBUG FRA simulator.New(): creating fake client for the simulation.\n")
+		log.Debugf("DEBUG FRA simulator.New(): creating fake client for the simulation.\n")
 		client = fakeclientset.NewSimpleClientset()
 	}
 	kubeSchedulerConfig.Client = client
@@ -204,7 +204,7 @@ func New(opts ...Option) (Interface, error) {
 // RunCluster with real client in a production cluster or fake client in a simulated cluster.
 func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.UnscheduledPod, error) {
 	// start scheduler on a different process.
-	fmt.Printf("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in a different process.\n")
+	log.Debugf("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in a different process.\n")
 	sim.runScheduler()
 
 	// Example of Go type assertion with type switch.
@@ -213,7 +213,7 @@ func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.Unscheduled
 		return nil, nil
 	case *fakeclientset.Clientset:
 		// IMPORTANT: the function below load Pods into creation and deletion events. Also, 2) schedule and delete these existing Pods.
-		fmt.Printf("DEBUG FRA, simulator.go.RunCluster() => starting scheduling pods on nodes.\n")
+		log.Debugf("DEBUG FRA, simulator.go.RunCluster() => starting scheduling pods on nodes.\n")
 		return sim.syncClusterResourceList(cluster)
 	default:
 		return nil, fmt.Errorf("unknown client type: %T", t)
@@ -298,12 +298,12 @@ func (sim *Simulator) runScheduler() {
 }
 
 func (sim *Simulator) createPod(p *corev1.Pod) error {
-	fmt.Printf("DEBUG FRA, simulator.go.createPod => executing createPod!\n")
-	fmt.Printf("DEBUG FRA, simulator.go.createPod => Resources requested from pod: %+v\n", utils.GetPodResource(p))
+	log.Debugf("DEBUG FRA, simulator.go.createPod => executing createPod!\n")
+	log.Debugf("DEBUG FRA, simulator.go.createPod => Resources requested from pod: %+v\n", utils.GetPodResource(p))
 
 	// Attempt to create, and thus also schedule, the pod via the Kubernetes client.
 	if _, err := sim.client.CoreV1().Pods(p.Namespace).Create(sim.ctx, p, metav1.CreateOptions{}); err != nil {
-		fmt.Printf("DEBUG FRA, simulator.go.createPod => error: %s\n", err)
+		log.Debugf("DEBUG FRA, simulator.go.createPod => error: %s\n", err)
 
 		return fmt.Errorf("%s(%s): %s", simontype.CreatePodError, utils.GeneratePodKey(p), err.Error())
 	}
@@ -319,14 +319,14 @@ func (sim *Simulator) createPod(p *corev1.Pod) error {
 	if pod != nil {
 		if pod.Spec.NodeName != "" {
 			sim.syncNodeUpdateOnPodCreate(pod.Spec.NodeName, pod, 2*time.Millisecond)
-			log.Infof("pod(%s) is scheduled to node(%s)\n", utils.GeneratePodKey(pod), pod.Spec.NodeName)
+			log.Debugf("pod(%s) is scheduled to node(%s)\n", utils.GeneratePodKey(pod), pod.Spec.NodeName)
 		}
 	} else {
-		fmt.Printf("DEBUG FRA, simulator.go.createPod => pod(%s) not created, should not happen\n", utils.GeneratePodKey(p))
+		log.Debugf("DEBUG FRA, simulator.go.createPod => pod(%s) not created, should not happen\n", utils.GeneratePodKey(p))
 		log.Errorf("[createPod] pod(%s) not created, should not happen", utils.GeneratePodKey(p))
 	}
 
-	fmt.Printf("DEBUG FRA, simulator.go.createPod => terminating execution of createPod!\n")
+	log.Debugf("DEBUG FRA, simulator.go.createPod => terminating execution of createPod!\n")
 	return nil
 }
 
@@ -356,7 +356,7 @@ func (sim *Simulator) deletePod(p *corev1.Pod) error {
 }
 
 func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
-	fmt.Printf("DEBUG FRA, simulator.go.assumePod => executing assumePod!\n")
+	log.Debugf("DEBUG FRA, simulator.go.assumePod => executing assumePod!\n")
 
 	err1 := sim.createPod(pod)
 	checkUnscheduled := sim.isPodUnscheduled(pod.Namespace, pod.Name)
@@ -365,17 +365,17 @@ func (sim *Simulator) assumePod(pod *corev1.Pod) *simontype.UnscheduledPod {
 			log.Errorf("[assumePod] failed to delete pod(%s)\n", utils.GeneratePodKey(pod))
 		}
 
-		fmt.Printf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod (error: %+v, unscheduled?: %t)!\n", err1, checkUnscheduled)
+		log.Debugf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod (error: %+v, unscheduled?: %t)!\n", err1, checkUnscheduled)
 		return &simontype.UnscheduledPod{Pod: pod}
 	}
 
-	fmt.Printf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod!\n")
+	log.Debugf("DEBUG FRA, simulator.go.assumePod => terminated executing assumePod!\n")
 	return nil
 }
 
 func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPod {
-	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!\n")
-	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => initial cluster's power consumption!\n")
+	log.Debugf("DEBUG FRA, simulator.go.SchedulePods => entering method actually scheduling pods!\n")
+	log.Debugf("DEBUG FRA, simulator.go.SchedulePods => initial cluster's power consumption!\n")
 	sim.ClusterPowerConsumptionReport()
 
 	// IMPORTANT: in this for cycle, we are scheduling the pods! "pods" contains Pod creation and deletion events.
@@ -424,7 +424,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		// sim.ReportFragBasedOnSkyline()
 	}
 
-	fmt.Printf("DEBUG FRA, simulator.go.SchedulePods => exiting method actually scheduling pods!\n")
+	log.Debugf("DEBUG FRA, simulator.go.SchedulePods => exiting method actually scheduling pods!\n")
 	return failedPods
 }
 
@@ -484,7 +484,7 @@ func (sim *Simulator) isPodFoundInNodeGpuAnno(node *corev1.Node, p *corev1.Pod) 
 }
 
 func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
-	fmt.Printf("DEBUG FRA, simulator.go.syncPodCreate => executing syncPodCreate!\n")
+	log.Debugf("DEBUG FRA, simulator.go.syncPodCreate => executing syncPodCreate!\n")
 
 	for {
 		if sim.isPodCreated(ns, name) {
@@ -495,7 +495,7 @@ func (sim *Simulator) syncPodCreate(ns, name string, d time.Duration) {
 }
 
 func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
-	fmt.Printf("DEBUG FRA, simulator.go.syncPodDelete => executing syncPodDelete!\n")
+	log.Debugf("DEBUG FRA, simulator.go.syncPodDelete => executing syncPodDelete!\n")
 
 	for {
 		log.Debugf("check if pod(%s) has been deleted\n", name)
@@ -508,7 +508,7 @@ func (sim *Simulator) syncPodDelete(ns, name string, d time.Duration) {
 }
 
 func (sim *Simulator) syncNodeUpdateOnPodCreate(nodeName string, p *corev1.Pod, d time.Duration) {
-	fmt.Printf("DEBUG FRA, simulator.go.syncNodeUpdateOnPodCreate => executing syncNodeUpdateOnPodCreate!\n")
+	log.Debugf("DEBUG FRA, simulator.go.syncNodeUpdateOnPodCreate => executing syncNodeUpdateOnPodCreate!\n")
 
 	for {
 		node, _ := sim.client.CoreV1().Nodes().Get(sim.ctx, nodeName, metav1.GetOptions{})
@@ -566,7 +566,7 @@ func (sim *Simulator) syncNodeCreate(name string, d time.Duration) {
 // syncClusterResourceList: 1) load Pods into creation and deletion events. 2) schedule and delete these existing Pods.
 func (sim *Simulator) syncClusterResourceList(resourceList ResourceTypes) ([]simontype.UnscheduledPod, error) {
 
-	fmt.Printf("DEBUG FRA, simulator.go.syncClusterResourceList() => creating, deleting and scheduling pods.\n")
+	log.Debugf("DEBUG FRA, simulator.go.syncClusterResourceList() => creating, deleting and scheduling pods.\n")
 
 	// 1 - sync node
 	// sort nodes according to their names
