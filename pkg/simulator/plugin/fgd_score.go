@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	resourcehelper "k8s.io/kubectl/pkg/util/resource"
@@ -25,7 +26,7 @@ var _ framework.ScorePlugin = &FGDScorePlugin{} // This assignment is used at co
 // NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
 // These are required to compute the cluster fragmentation.
 func NewFGDScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.NewFGDScorePlugin() => Instantiating FGD plugin!\n")
+	log.Infof("DEBUG FRA, plugin.fgd_score.NewFGDScorePlugin() => Instantiating FGD plugin!\n")
 
 	plugin := &FGDScorePlugin{
 		handle:      handle,
@@ -50,7 +51,7 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 			pod_GPU_type = "NONE"
 		}
 	}
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
+	log.Debugf("DEBUG FRA, plugin.fgd_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
 		nodeName, p.Name, pod_GPU_type)
 
 	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
@@ -58,7 +59,7 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	// If pod overhead is non-nil, the pod overhead is added to the total container resource requests and to the
 	// total container limits which have a non-zero quantity.
 	if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
-		fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => the pod does not request any resource!\n")
+		log.Debugf("DEBUG FRA, plugin.fgd_score.Score() => the pod does not request any resource!\n")
 		return framework.MaxNodeScore, framework.NewStatus(framework.Success)
 	}
 
@@ -78,9 +79,9 @@ func (plugin *FGDScorePlugin) Score(ctx context.Context, state *framework.CycleS
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU/CPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod: %+v\n", podRes)
-	fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node: %+v\n", nodeRes)
-	// fmt.Printf("DEBUG FRA, plugin.fgd_score.Score() => typical pods %+v\n", plugin.typicalPods)
+	log.Debugf("DEBUG FRA, plugin.fgd_score.Score() => Resources requested from pod: %+v\n", podRes)
+	log.Debugf("DEBUG FRA, plugin.fgd_score.Score() => Resources offered by node: %+v\n", nodeRes)
+	// log.Debugf("DEBUG FRA, plugin.fgd_score.Score() => typical pods %+v\n", plugin.typicalPods)
 
 	// Step 4 - compute the score of a node w.r.t. the considered pod.
 	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
@@ -123,7 +124,7 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 				// pod on a GPU is. Then, divide the difference by 1000 as the two values are expressed on millisimed resources.
 				// Finally, apply the sigmoid to get a value in [0,1], and then multiply this value for the maximum admissible score.
 				fragScore := int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore))
-				fmt.Printf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, fragScore)
+				log.Debugf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, fragScore)
 				if gpuId == "" || fragScore > score {
 					score = fragScore
 					gpuId = strconv.Itoa(i)
@@ -141,7 +142,7 @@ func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes sim
 		newNodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(newNodeRes, *typicalPods)
 
 		fragScore := int64(sigmoid((nodeGpuShareFragScore-newNodeGpuShareFragScore)/1000) * float64(framework.MaxNodeScore))
-		fmt.Printf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, with no-CPU or multi-GPU pod: %d\n", nodeRes.NodeName, fragScore)
+		log.Debugf("DEBUG FRA, plugin.fgd_score.calculateGpuShareFragExtendScore(): Scoring node %s, with no-CPU or multi-GPU pod: %d\n", nodeRes.NodeName, fragScore)
 
 		return fragScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}

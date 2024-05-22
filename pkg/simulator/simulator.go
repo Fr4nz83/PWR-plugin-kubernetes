@@ -113,7 +113,7 @@ func New(opts ...Option) (Interface, error) {
 	// NOTE: the fake client is used in the case a simulation is done.
 	var client externalclientset.Interface
 	if options.kubeconfig != "" {
-		log.Debugf("DEBUG FRA simulator.New(): creating real client.\n")
+		log.Infof("DEBUG FRA simulator.New(): creating real client.\n")
 		varConfig, err := clientcmd.BuildConfigFromFlags("", options.kubeconfig)
 		if err != nil {
 			log.Errorf("%s\n", err.Error())
@@ -121,7 +121,7 @@ func New(opts ...Option) (Interface, error) {
 		client, err = externalclientset.NewForConfig(varConfig)
 	} else {
 		// NOTE: the fake client's implementation comes from a Kubernetes Go library, see the imports.
-		log.Debugf("DEBUG FRA simulator.New(): creating fake client for the simulation.\n")
+		log.Infof("DEBUG FRA simulator.New(): creating fake client for the simulation.\n")
 		client = fakeclientset.NewSimpleClientset()
 	}
 	kubeSchedulerConfig.Client = client

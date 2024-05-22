@@ -63,7 +63,7 @@ func (a AllocAmount) Add(b AllocAmount) error {
 
 // IMPORTANT: the function below returns also the overall memory used in the cluster.
 func ReportNodeAllocationRate(aamap map[string]AllocAmount) (rs []ResourceSummary) {
-	fmt.Printf("DEBUG FRA, alloc.go.ReportNodeAllocationRate => Executing this function!\n")
+	log.Debugf("DEBUG FRA, alloc.go.ReportNodeAllocationRate => Executing this function!\n")
 
 	requested := make(map[string]int64)
 	allocatable := make(map[string]int64)

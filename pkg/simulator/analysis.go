@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"fmt"
 	"math"
 	"sync"
 
@@ -44,24 +43,24 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 			// Calculate the power consumed by the CPUs and GPUs in a given node.
 			node_CPU_power, node_GPU_power := nodeRes.GetEnergyConsumptionNode()
 
-			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
-			fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)
+			log.Debugf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
+			log.Debugf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)
 
 			powerCluster += node_CPU_power + node_GPU_power
 		}
 		nodeCnt += 1
 	}
 
-	fmt.Printf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by the cluster: %f watts\n", powerCluster)
+	log.Infof("[Power] DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by the cluster: %f watts\n", powerCluster)
 }
 
 // ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes
 func (sim *Simulator) ClusterGpuFragReport() {
-	fmt.Printf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Executing ClusterGpuFragReport!\n")
+	log.Debugf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Executing ClusterGpuFragReport!\n")
 
 	nodeStatus := sim.GetClusterNodeStatus()
 	if len(nodeStatus) == 0 {
-		fmt.Printf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Nothing to report for now!\n")
+		log.Debugf("DEBUG FRA, analysis.go.ClusterGpuFragReport() => Nothing to report for now!\n")
 		return
 	}
 	if sumRatio := utils.PodListRatioSum(sim.typicalPods); math.Abs(sumRatio-1) > 1e-3 {

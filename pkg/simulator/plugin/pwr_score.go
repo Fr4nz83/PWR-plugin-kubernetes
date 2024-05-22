@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	resourcehelper "k8s.io/kubectl/pkg/util/resource"
@@ -29,7 +30,7 @@ var _ framework.ScorePlugin = &PWRScorePlugin{} // This assignment is used at co
 // NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
 // These are required to compute the cluster fragmentation.
 func NewPWRScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.NewPWRScorePlugin() => Instantiating PWR plugin!\n")
+	log.Infof("DEBUG FRA, plugin.pwr_score.NewPWRScorePlugin() => Instantiating PWR plugin!\n")
 
 	plugin := &PWRScorePlugin{
 		handle:      handle,
@@ -54,7 +55,7 @@ func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleS
 			pod_GPU_type = "NONE"
 		}
 	}
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
+	log.Debugf("DEBUG FRA, plugin.pwr_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
 		nodeName, p.Name, pod_GPU_type)
 
 	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
@@ -62,7 +63,7 @@ func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleS
 	// If pod overhead is non-nil, the pod overhead is added to the total container resource requests and to the
 	// total container limits which have a non-zero quantity.
 	if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
-		fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => the pod does not request any resource!\n")
+		log.Debugf("DEBUG FRA, plugin.pwr_score.Score() => the pod does not request any resource!\n")
 		return framework.MaxNodeScore, framework.NewStatus(framework.Success)
 	}
 
@@ -83,9 +84,9 @@ func (plugin *PWRScorePlugin) Score(ctx context.Context, state *framework.CycleS
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Resources requested from pod: %+v\n", podRes)
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => Resources offered by node: %+v\n", nodeRes)
-	// fmt.Printf("DEBUG FRA, plugin.pwr_score.Score() => typical pods %+v\n", plugin.typicalPods)
+	log.Debugf("DEBUG FRA, plugin.pwr_score.Score() => Resources requested from pod: %+v\n", podRes)
+	log.Debugf("DEBUG FRA, plugin.pwr_score.Score() => Resources offered by node: %+v\n", nodeRes)
+	// log.Debugf("DEBUG FRA, plugin.pwr_score.Score() => typical pods %+v\n", plugin.typicalPods)
 
 	// Step 4 - compute the score of a node w.r.t. the considered pod.
 	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
@@ -100,7 +101,7 @@ func (plugin *PWRScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 }
 
 func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore() => Normalizing scores!\n")
+	log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore() => Normalizing scores!\n")
 
 	// Find the minimum score, as the maximum score is known to be 0
 	minScore := scores[0].Score
@@ -116,11 +117,11 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 
 	// Case where all the scores are 0: set them to 100 and return.
 	if minScore == maxScore {
-		fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): all the scores are equal.\n")
+		log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): all the scores are equal.\n")
 
 		for i, _ := range scores {
 			scores[i].Score = 100
-			fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+			log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 		}
 
 		return framework.NewStatus(framework.Success)
@@ -130,7 +131,7 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 	for i, _ := range scores {
 		// Normalization formula: normalized_score = (score - minScore) / (0 - minScore) * 100
 		scores[i].Score = (scores[i].Score - minScore) * 100 / (maxScore - minScore)
-		fmt.Printf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+		log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 	}
 
 	return framework.NewStatus(framework.Success)
@@ -166,7 +167,7 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 
 				// Compute the node's score
 				pwrScore := int64(old_node_energy - new_node_energy)
-				fmt.Printf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, pwrScore)
+				log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, pwrScore)
 				if gpuId == "" || pwrScore > score {
 					score = pwrScore
 					gpuId = strconv.Itoa(i)
@@ -185,7 +186,7 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 		new_node_energy := new_CPU_energy + new_GPU_energy
 
 		pwrScore := int64(old_node_energy - new_node_energy)
-		fmt.Printf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n", nodeRes.NodeName, pwrScore)
+		log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n", nodeRes.NodeName, pwrScore)
 		return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
@@ -193,7 +194,7 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 // This function selects the best GPU(s) found in a given node. It essentially re-executes the allocateGpuIdBasedOnPWRScore function
 // executed within Score(), but it considers only the best GPU(s) for a pod found in a node and ignores the computed score.
 func allocateGpuIdBasedOnPWRScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
-	fmt.Printf("DEBUG FRA, plugin.pwr_score.allocateGpuIdBasedOnPWRScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
+	log.Debugf("DEBUG FRA, plugin.pwr_score.allocateGpuIdBasedOnPWRScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
 	_, gpuId = calculatePWRShareExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
 }

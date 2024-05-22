@@ -510,7 +510,7 @@ func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node
 		num_idle_GPUs := float64(tnr.GetFullyFreeGpuNum())
 		num_working_GPUs := float64(tnr.GpuNumber) - num_idle_GPUs
 
-		// fmt.Printf("GPU type: %s\n", GPU_type)
+		// log.Debugf("GPU type: %s\n", GPU_type)
 		node_GPU_power = gpushareutils.MapGpuTypeModelEnergy[GPU_type](num_idle_GPUs, num_working_GPUs)
 	}
 
@@ -528,7 +528,7 @@ func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node
 	node_CPU_power = (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_cpus) +
 		(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_active_cpus)
 
-	fmt.Printf("DEBUG FRA, resource.go.GetEnergyConsumptionNode() => CPU model for node %s: %s\n", tnr.NodeName, tnr.CpuType)
-	// fmt.Printf("%f %f %f %f %f %f", num_real_cores_node, num_idle_cores_node, num_working_cores_node, num_cpus_node, num_active_cpus, num_idle_cpus)
+	log.Debugf("DEBUG FRA, resource.go.GetEnergyConsumptionNode() => CPU model for node %s: %s\n", tnr.NodeName, tnr.CpuType)
+	// log.Debugf("%f %f %f %f %f %f", num_real_cores_node, num_idle_cores_node, num_working_cores_node, num_cpus_node, num_active_cpus, num_idle_cpus)
 	return node_CPU_power, node_GPU_power
 }
