@@ -46,7 +46,7 @@ var MapGpuTypeMemoryMiB = map[string]int64{
 // The first link does not contain any references to instances with A100, but the second one does.
 // TODO: check if there are better references for the power consumed in idle state.
 var MapCpuTypeEnergyConsumption = map[string]map[string]float64{
-	"":                      {"idle": float64(35), "full": float64(300), "ncores": float64(32)}, // If no node's CPU type is provided (shouldn't happen!), assume this CPU profile.
+	"":                      {"idle": float64(15), "full": float64(120), "ncores": float64(16)}, // If no CPU type provided (shouldn't happen!), assume 2682's profile.
 	"Intel-Xeon-8269CY":     {"idle": float64(20), "full": float64(205), "ncores": float64(26)}, // Used on non-GPU nodes.
 	"Intel-Xeon-8163":       {"idle": float64(20), "full": float64(165), "ncores": float64(24)}, // Used in instances with NVIDIA T4
 	"Intel-Xeon-ES-2682-V4": {"idle": float64(15), "full": float64(120), "ncores": float64(16)}, // Used in instances with NVIDIA P100

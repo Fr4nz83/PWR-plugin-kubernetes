@@ -42,16 +42,15 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 
 			// Calculate the power consumed by the CPUs and GPUs in a given node.
 			node_CPU_power, node_GPU_power := nodeRes.GetEnergyConsumptionNode()
-
-			log.Debugf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by CPUs of node %s: %f watts\n", nodeRes.NodeName, node_CPU_power)
-			log.Debugf("DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by GPUs of node %s: %f watts\n", nodeRes.NodeName, node_GPU_power)
+			log.Infof("DEBUG FRA, ClusterPowerConsumptionReport() => node [%s]: CPU %.0fW, GPUs %.0fW\n",
+				nodeRes.Repr(), node_CPU_power, node_GPU_power)
 
 			powerCluster += node_CPU_power + node_GPU_power
 		}
 		nodeCnt += 1
 	}
 
-	log.Infof("[Power] DEBUG FRA, analysis.go.ClusterPowerConsumptionReport() => energy consumed by the cluster: %f watts\n", powerCluster)
+	log.Infof("[Power] Energy consumed by the cluster: %.1f watts\n", powerCluster)
 }
 
 // ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes

@@ -117,13 +117,29 @@ func (tpr PodResource) TotalMilliGpu() int64 {
 }
 
 func (tnr NodeResource) Repr() string {
-	outStr := fmt.Sprintf("%s<", tnr.NodeName)
-	outStr += fmt.Sprintf("CPU (%s): %6.2f/%6.2f", tnr.CpuType, float64(tnr.MilliCpuLeft)/1000, float64(tnr.MilliCpuCapacity)/1000)
-	outStr += fmt.Sprintf(", GPU (%s): %d", tnr.GpuType, tnr.GpuNumber)
-	if tnr.GpuNumber > 0 {
-		outStr += fmt.Sprintf(" x %dm, Left:", gpushareutils.MILLI)
-		for _, gML := range tnr.MilliGpuLeftList {
-			outStr += fmt.Sprintf(" %dm", gML)
+	cputype := tnr.CpuType
+	if cputype == "" {
+		cputype = "NA"
+	}
+	gputype := tnr.GpuType
+	if gputype == "" {
+		if tnr.GpuNumber > 0 {
+			gputype = "NA"
+		} else {
+			gputype = "NO GPU"
+		}
+	}
+
+	outStr := fmt.Sprintf("%s <", tnr.NodeName)
+	outStr += fmt.Sprintf("CPU (%s, %.0f cores): %.0f/%.0f vCPUs",
+		cputype, gpushareutils.MapCpuTypeEnergyConsumption[tnr.CpuType]["ncores"], float64(tnr.MilliCpuLeft)/1000, float64(tnr.MilliCpuCapacity)/1000)
+	if gputype != "NO GPU" {
+		outStr += fmt.Sprintf(" | GPU (%s): %d", gputype, tnr.GpuNumber)
+		if tnr.GpuNumber > 0 {
+			outStr += fmt.Sprintf(" x %dm, Left:", gpushareutils.MILLI)
+			for _, gML := range tnr.MilliGpuLeftList {
+				outStr += fmt.Sprintf(" %dm", gML)
+			}
 		}
 	}
 	outStr += ">"
@@ -528,7 +544,6 @@ func (tnr NodeResource) GetEnergyConsumptionNode() (node_CPU_power float64, node
 	node_CPU_power = (gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["idle"] * num_idle_cpus) +
 		(gpushareutils.MapCpuTypeEnergyConsumption[CPU_type]["full"] * num_active_cpus)
 
-	log.Debugf("DEBUG FRA, resource.go.GetEnergyConsumptionNode() => CPU model for node %s: %s\n", tnr.NodeName, tnr.CpuType)
 	// log.Debugf("%f %f %f %f %f %f", num_real_cores_node, num_idle_cores_node, num_working_cores_node, num_cpus_node, num_active_cpus, num_idle_cpus)
 	return node_CPU_power, node_GPU_power
 }

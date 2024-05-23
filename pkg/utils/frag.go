@@ -131,7 +131,7 @@ func NodeGpuFragRatio(nodeRes simontype.NodeResource, typicalPods simontype.Targ
 			continue
 		}
 		fragType := GetNodePodFrag(nodeRes, pod.TargetPodResource)
-		log.Debugf("nodeRes: %s; pod: %s => fragType: %s (freq: %.2f)\n", nodeRes.Repr(), pod.TargetPodResource.Repr(), fragType, freq)
+		log.Tracef("nodeRes: %s; pod: %s => fragType: %s (freq: %.2f)\n", nodeRes.Repr(), pod.TargetPodResource.Repr(), fragType, freq)
 		if err := fragRatio.AddRatio(fragType, freq); err != nil {
 			log.Errorln(err.Error())
 		}
@@ -228,58 +228,6 @@ func GetGpuMilliLeftTotal(nodeRes simontype.NodeResource) (gpuMilliLeftTotal int
 	return gpuMilliLeftTotal
 }
 
-/*
-func NodeGpuFragBellmanEarlyStop(nodeRes simontype.NodeResource, typicalPods simontype.TargetPodList, dp *sync.Map) float64 {
-	log.Tracef("Enter bellman with nodeRes(%s)\n", nodeRes.Repr())
-	nodeResKey := nodeRes.Flatten()
-	if fa, ok := dp.Load(nodeResKey); ok {
-		if frag, ok2 := fa.(float64); ok2 {
-			log.Tracef("Hit Cache! %v\n", nodeResKey)
-			return frag
-		}
-	}
-
-	var frag float64
-	gpuMilliLeftTotal := float64(GetGpuMilliLeftTotal(nodeRes))
-	if gpuMilliLeftTotal == 0 {
-		return frag
-	}
-
-	gamma := 0.9 // gamma in (0, 1]
-	delta := 1e-6
-	fragRatio := NodeGpuFragRatio(nodeRes, typicalPods)
-	fragRatioValue := fragRatio.FragRatioSumExceptQ3()
-	if fragRatioValue < delta {
-		log.Tracef("Zero frag ratio: %.2f\n", fragRatio.FragRatioSumExceptQ3())
-		var pvSum float64 // init of pvSum = 0
-		for _, pod := range typicalPods {
-			p := pod.Percentage
-			newNodeRes, err := nodeRes.Sub(pod.TargetPodResource)
-			if err != nil { // r(s)
-				log.Tracef("nodeRes.Sub(podRes) stops in Bellman: " + err.Error())
-				v := gpuMilliLeftTotal
-				log.Tracef("pvSum: %.2f + %.2f * p(%.2f) => %.2f\n", pvSum, v, p, pvSum+v*p)
-				pvSum += v * p
-				continue
-			}
-			log.Tracef(" pod(%s) calls Bellman\n", pod.TargetPodResource.Repr())
-			v := NodeGpuFragBellmanEarlyStop(newNodeRes, typicalPods, dp)
-			log.Tracef("pvSum: %.2f + %.2f * p(%.2f) => %.2f\n", pvSum, v, p, pvSum+v*p)
-			pvSum += v * p
-		}
-		log.Tracef("Gamma: %.2f + %.2f * g(%.2f) => %.2f\n", frag, pvSum, gamma, frag+pvSum*gamma)
-		frag += pvSum * gamma
-	} else {
-		log.Tracef("Got non-zero frag ratio: %s\n", fragRatio.Repr())
-		// else: early cut-off: V(s) = r(s) (if r(s) > 0.001)
-		frag = gpuMilliLeftTotal
-	}
-	dp.Store(nodeResKey, frag)
-	log.Infof("dp: Update key(%v) as %.2f\n", nodeResKey, frag)
-	return frag
-}
-*/
-
 func NodeGpuFragBellman(nodeRes simontype.NodeResource, typicalPods simontype.TargetPodList, dp *sync.Map, cumProb float64) float64 {
 	log.Tracef("Enter bellman with nodeRes(%s)\n", nodeRes.Repr())
 	nodeResKey := nodeRes.Flatten("bellman")
@@ -333,71 +281,6 @@ func NodeGpuFragBellman(nodeRes simontype.NodeResource, typicalPods simontype.Ta
 	//log.Infof("dp: Update key(%v) as %.2f\n", nodeResKey, frag)
 	return frag
 }
-
-/*
-func NodeGpuFragAmountBellman(nodeRes simontype.NodeResource, typicalPods simontype.TargetPodList, dp *sync.Map) FragAmount {
-	log.Traceln()
-	log.Debugf("Enter bellman with nodeRes(%s)\n", nodeRes.Repr())
-	// Read dp memo
-	nodeResKey := nodeRes.Flatten()
-	if fa, ok := dp.Load(nodeResKey); ok {
-		if fragAmount, ok2 := fa.(FragAmount); ok2 {
-			log.Infof("Hit Cache! %v\n", nodeResKey)
-			return NewFragAmount(nodeRes.NodeName, fragAmount.Data)
-		}
-	}
-
-	fragAmount := FragAmount{nodeRes.NodeName, make([]float64, len(FragRatioDataMap))} // r(s) init as all zero
-	if GetGpuMilliLeftTotal(nodeRes) == 0 {
-		return fragAmount // If there are no GPUs left, the frag amount should be all zero
-	}
-
-	gamma := 1.0 // gamma in (0, 1]
-	delta := 0.999
-	// If missed, calculate and update dp memo
-	fragRatio := NodeGpuFragRatio(nodeRes, typicalPods)
-	if fragRatio.FragRatioSumExceptQ3() < delta {
-		log.Infof("Non-full frag ratio: %.2f\n", fragRatio.FragRatioSumExceptQ3())
-		// Bellman equation: V(s) = r(s) + gamma * sum( p(s'|s) * V(s') )
-		pvSum := FragAmount{nodeRes.NodeName, make([]float64, len(FragRatioDataMap))} // init of pvSum = 0
-		for i, pod := range typicalPods {
-			p := pod.Percentage
-			newNodeRes, err := nodeRes.Sub(pod.TargetPodResource)
-			if err != nil { // r(s)
-				log.Infof("nodeRes.Sub(podRes) stops in Bellman: " + err.Error())
-				v := fragAmount
-				log.Infof("pvSum (before): %s + %s (p=%.2f)\n", pvSum.Repr(), v.Repr(), p)
-				if err := pvSum.AddGamma(v, p); err != nil {
-					log.Errorf("pvSum.AddGamma errs in Bellman: " + err.Error())
-				}
-				log.Infof("pvSum (after) : %s\n", pvSum.Repr())
-				continue
-			}
-			log.Infof(" pod[%d](%s) calls Bellman\n", i, pod.TargetPodResource.Repr())
-			v := NodeGpuFragAmountBellman(newNodeRes, typicalPods, dp)
-			log.Infof("pvSum (before): %s + %s (p=%.2f)\n", pvSum.Repr(), v.Repr(), p)
-			if err = pvSum.AddGamma(v, p); err != nil { // sum( p(s'|s) * V(s') )
-				log.Errorf("pvSum.AddGamma errs in Bellman: " + err.Error())
-			}
-			log.Infof("pvSum (after) : %s\n", pvSum.Repr())
-		}
-
-		log.Infof("gamma (before): %s + %s (gamma=%.2f)\n", fragAmount.Repr(), pvSum.Repr(), gamma)
-		if err := fragAmount.AddGamma(pvSum, gamma); err != nil { // V(s) = r(s) + gamma * sum()
-			log.Errorf("pvSum.AddGamma errs in Bellman: " + err.Error())
-		}
-		log.Infof("gamma (after) : %s\n", fragAmount.Repr())
-
-	} else { // i.e., no pod could be allocated on this.
-		log.Infof("Got full frag ratio: %s\n", fragRatio.Repr())
-		// else: early cut-off: V(s) = r(s) (if r(s) > 0.001)
-		fragAmount = GetFragAmountByNodeResAndFragRatio(nodeRes, fragRatio)
-	}
-	dp.Store(nodeResKey, NewFragAmount("", fragAmount.Data))
-	log.Debugf("dp: Update key(%v) as %s\n", nodeResKey, NewFragAmount("", fragAmount.Data).Repr())
-	return fragAmount
-}
-*/
 
 func GetTypicalPods(allPods []*v1.Pod, config v1alpha1.TypicalPodsConfig) simontype.TargetPodList {
 	tgtPodResCntMap := map[simontype.PodResource]float64{}
