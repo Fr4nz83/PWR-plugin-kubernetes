@@ -35,22 +35,24 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 	// Then, find out how many GPUs are used -- in this case, each GPU is treated as a separate entity.
 	// Even if a GPU is minimally used, assume that its power consumption is maximal.
 	var nodeCnt uint32 = 0
-	var powerCluster float64 = 0
+	var powerCPUCluster, powerGPUCluster float64 = 0, 0
 	sim.nodeResourceMap = utils.GetNodeResourceMap(nodeStatus)
 	for _, ns := range nodeStatus {
 		if nodeRes, ok := sim.nodeResourceMap[ns.Node.Name]; ok {
 
 			// Calculate the power consumed by the CPUs and GPUs in a given node.
 			node_CPU_power, node_GPU_power := nodeRes.GetEnergyConsumptionNode()
-			log.Infof("DEBUG FRA, ClusterPowerConsumptionReport() => node [%s]: CPU %.0fW, GPUs %.0fW\n",
+			log.Debugf("DEBUG FRA, ClusterPowerConsumptionReport() => node [%s]: CPU %.0fW, GPUs %.0fW\n",
 				nodeRes.Repr(), node_CPU_power, node_GPU_power)
 
-			powerCluster += node_CPU_power + node_GPU_power
+			powerCPUCluster += node_CPU_power
+			powerGPUCluster += node_GPU_power
 		}
 		nodeCnt += 1
 	}
 
-	log.Infof("[Power] Energy consumed by the cluster: %.1f watts\n", powerCluster)
+	log.Infof("[Power]; cluster: %.1fW; ClusterCPU: %.1fW; ClusterGPU:%.1fW)\n",
+		powerCPUCluster+powerGPUCluster, powerCPUCluster, powerGPUCluster)
 }
 
 // ClusterGpuFragReport Reports the Gpu Frag Amount of all nodes
@@ -79,7 +81,8 @@ func (sim *Simulator) ClusterGpuFragReport() {
 		if nodeRes, ok := sim.nodeResourceMap[ns.Node.Name]; ok {
 			clusterFragAmount.AddFragAmount(sim.NodeGpuFragAmount(nodeRes)) // easy to calculate. The regular Frag definition
 			clusterFragBellman += utils.NodeGpuFragBellman(nodeRes, sim.typicalPods, &sim.fragMemo, 1.0)
-			log.Debugf("[DEBUG][sim.ClusterGpuFragReport] calc [%d] node(%s) frag (%.2f): %s\n", nodeCnt, nodeRes.NodeName, clusterFragAmount.FragAmountSumExceptQ3(), clusterFragAmount.Repr())
+			log.Debugf("[DEBUG][sim.ClusterGpuFragReport] calc [%d] node(%s) frag (%.2f): %s\n",
+				nodeCnt, nodeRes.NodeName, clusterFragAmount.FragAmountSumExceptQ3(), clusterFragAmount.Repr())
 
 			// To calculate the allocation ratio of cluster in an online manner
 			clusterTotalGpus += nodeRes.GpuNumber
@@ -107,7 +110,8 @@ func (sim *Simulator) ClusterGpuFragReport() {
 	//if clusterTotalGpus*gpushareutils.MILLI-int(idleGpuMilli) != int(clusterUsedGpuMilli) { // this prints unnecessary logs due to the int rounding error
 	//	log.Errorf("totalGpuMilli (%d) - idleGpuMilli (%d) != usedGpuMilli (%d)", clusterTotalGpus*gpushareutils.MILLI, idleGpuMilli, clusterUsedGpuMilli)
 	//}
-	log.Infof("[Alloc]; Used nodes: %d; Used GPUs: %d; Used GPU Milli: %d; Total GPUs: %d; Arrived GPU Milli: %d\n", clusterUsedNodes, clusterUsedGpus, clusterUsedGpuMilli, clusterTotalGpus, sim.arrPodGpuMilli)
+	log.Infof("[Alloc]; Used nodes: %d; Used GPUs: %d; Used GPU Milli: %d; Total GPUs: %d; Arrived GPU Milli: %d\n",
+		clusterUsedNodes, clusterUsedGpus, clusterUsedGpuMilli, clusterTotalGpus, sim.arrPodGpuMilli)
 }
 
 func (sim *Simulator) ReportFragBasedOnSkyline() {

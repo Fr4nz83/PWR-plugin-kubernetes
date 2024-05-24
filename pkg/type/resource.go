@@ -102,12 +102,26 @@ type NodeResourceFlat struct {
 }
 
 func (tpr PodResource) Repr() string {
+	cputype := tpr.CpuType
+	if cputype == "" {
+		cputype = "ANY"
+	}
+
+	gputype := tpr.GpuType
+	if gputype == "" {
+		if tpr.MilliGpu > 0 {
+			gputype = "ANY"
+		} else {
+			gputype = "NONE"
+		}
+	}
+
 	outStr := "<"
 	outStr += fmt.Sprintf("CPU: %6.2f", float64(tpr.MilliCpu)/1000)
 	outStr += fmt.Sprintf(", GPU: %d", tpr.GpuNumber)
 	outStr += fmt.Sprintf(" x {%-4d}m", tpr.MilliGpu)
-	outStr += fmt.Sprintf(" (%s)", tpr.CpuType)
-	outStr += fmt.Sprintf(" (%s)", tpr.GpuType)
+	outStr += fmt.Sprintf(" (CPUREQ: %s)", cputype)
+	outStr += fmt.Sprintf(" (GPUREQ: %s)", gputype)
 	outStr += ">"
 	return outStr
 }

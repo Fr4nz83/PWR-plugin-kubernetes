@@ -204,7 +204,7 @@ func New(opts ...Option) (Interface, error) {
 // RunCluster with real client in a production cluster or fake client in a simulated cluster.
 func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.UnscheduledPod, error) {
 	// start scheduler on a different process.
-	log.Debugf("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in a different process.\n")
+	log.Infof("DEBUG FRA, simulator.go.RunCluster() => starting the scheduler in a different process.\n")
 	sim.runScheduler()
 
 	// Example of Go type assertion with type switch.
@@ -213,7 +213,7 @@ func (sim *Simulator) RunCluster(cluster ResourceTypes) ([]simontype.Unscheduled
 		return nil, nil
 	case *fakeclientset.Clientset:
 		// IMPORTANT: the function below load Pods into creation and deletion events. Also, 2) schedule and delete these existing Pods.
-		log.Debugf("DEBUG FRA, simulator.go.RunCluster() => starting scheduling pods on nodes.\n")
+		log.Infof("DEBUG FRA, simulator.go.RunCluster() => starting scheduling pods on nodes.\n")
 		return sim.syncClusterResourceList(cluster)
 	default:
 		return nil, fmt.Errorf("unknown client type: %T", t)
@@ -405,6 +405,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 			sim.arrPodGpuMilli += podRes.TotalMilliGpu()
 
 			log.Infof("[%d] attempt to create pod(%s)\n", i, utils.GeneratePodKey(pod))
+			log.Infof("Characteristics of pod(%s): %s\n", utils.GeneratePodKey(pod), utils.GetPodResource(pod).Repr())
 			if unscheduledPod := sim.assumePod(pod); unscheduledPod != nil {
 				log.Infof("[%d] failed to schedule pod(%s): %s\n", i, utils.GeneratePodKey(pod), utils.GetPodResource(pod).Repr())
 				failedPods = append(failedPods, *unscheduledPod)
