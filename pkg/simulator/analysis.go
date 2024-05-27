@@ -51,7 +51,7 @@ func (sim *Simulator) ClusterPowerConsumptionReport() {
 		nodeCnt += 1
 	}
 
-	log.Infof("[Power]; cluster: %.1fW; ClusterCPU: %.1fW; ClusterGPU:%.1fW)\n",
+	log.Infof("[Power]; cluster: %.1f; ClusterCPU: %.1f; ClusterGPU: %.1f\n",
 		powerCPUCluster+powerGPUCluster, powerCPUCluster, powerGPUCluster)
 }
 

@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
@@ -147,11 +148,10 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 	// Case 1 - the pod requests a fraction of the resources of a single GPU.
 	if podRes.GpuNumber == 1 && podRes.MilliGpu < gpushareutils.MILLI {
 
-		// Initially set the score to 0 -- this will be the score assigned to nodes that cannot accomodate the pod.
-		score, gpuId = 0, ""
-
-		// For each GPU in the node, check how the GPU's fragmentation would change by hypotetically assigning the considered pod to it.
-		// The loop below scan the set of GPUs within the node.
+		// For each GPU in the node, check how the node power consumption would change by hypotetically assigning the considered pod to it.
+		// NOTE: for now, we are assuming that a GPU consumes max power even if it is minimally used.
+		score, gpuId = math.MinInt64, ""
+		// minMilliLeft := int64(gpushareutils.MILLI)
 		for i := 0; i < len(nodeRes.MilliGpuLeftList); i++ {
 
 			// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
@@ -165,18 +165,41 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 				new_CPU_energy, new_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
 				new_node_energy := new_CPU_energy + new_GPU_energy
 
-				// Compute the node's score
+				// Compute the node's score according to the increase in power consumption that we would have by using the i-th GPU.
 				pwrScore := int64(old_node_energy - new_node_energy)
-				log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", nodeRes.NodeName, i, pwrScore)
-				if gpuId == "" || pwrScore > score {
+				log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n",
+					nodeRes.NodeName, i, pwrScore)
+
+				// ### Update the node's best score ### //
+				// Case 1 - this is the first GPU within the node that can accomodate the pod.
+				if gpuId == "" {
+					// minMilliLeft = nodeRes.MilliGpuLeftList[i]
 					score = pwrScore
 					gpuId = strconv.Itoa(i)
+				} else {
+					// Case 2 - we have found a GPU that is equivalent in terms of power consumption to the best one, but scheduling the pod
+					//          on this GPU  ...
+					/*if (pwrScore == score) && (minMilliLeft < nodeRes.MilliGpuLeftList[i]) {
+						minMilliLeft = nodeRes.MilliGpuLeftList[i]
+						gpuId = strconv.Itoa(i)
+					}*/
+
+					// Case 3 - we have found a better GPU than the previous one, i.e., by allocating the pod on this GPU,
+					//          we consume less energy than the previously found solution.
+					if pwrScore > score {
+						// minMilliLeft = nodeRes.MilliGpuLeftList[i]
+						score = pwrScore
+						gpuId = strconv.Itoa(i)
+					}
 				}
 			}
 		}
+
+		log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareExtendScore(): Final score for node %s: selected GPU %s, score %d\n",
+			nodeRes.NodeName, gpuId, score)
 		return score, gpuId
 
-		// Case 2 - the pod requests no (CPU only), exactly one, or multiple entire GPUs.
+		// Case 2 - the pod requests no (CPU only), or exactly one, or multiple GPUs.
 	} else {
 		// Subtract the node's resources that would be taken by the pod once scheduled on it.
 		newNodeRes, _ := nodeRes.Sub(podRes)
@@ -186,7 +209,9 @@ func calculatePWRShareExtendScore(nodeRes simontype.NodeResource, podRes simonty
 		new_node_energy := new_CPU_energy + new_GPU_energy
 
 		pwrScore := int64(old_node_energy - new_node_energy)
-		log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n", nodeRes.NodeName, pwrScore)
+		log.Debugf("DEBUG FRA, plugin.pwr_score.calculatePWRShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
+			nodeRes.NodeName, pwrScore)
+
 		return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }

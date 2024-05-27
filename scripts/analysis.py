@@ -121,6 +121,7 @@ def log_to_csv(log_path: Path, outfile: Path):
     out_frag_path = outfile.parent / (outfile.stem + '_frag.csv')
     out_allo_path = outfile.parent / (outfile.stem + '_allo.csv')
     out_cdol_path = outfile.parent / (outfile.stem + '_cdol.csv')
+    out_pwr_path = outfile.parent / (outfile.stem + '_pwr.csv')
     # print("Handling logs under  :", log_path)
     
     NUM_CLUSTER_ANALYSIS_LINE = 16
@@ -128,16 +129,21 @@ def log_to_csv(log_path: Path, outfile: Path):
     out_frag_col_dict = {}
     out_allo_col_dict = {}
     out_cdol_col_dict = {}
+    out_pwr_col_dict = {}
     log_file_counter = 0
     for file in log_path.glob("*.log"):
         log = file.name
         with open(file, 'r') as f:
+
+            # Retrieve meta info from the log filename.
             try:
                 meta_dict = get_meta_dict_from_logname(log=log, log_dir=log_path)
             except Exception as e:
                 print("[Error] %s file failed in get_meta_dict_from_logname: %s" % (log, e))
                 meta_dict = {}
             
+
+            # Now parse the lines of the log.
             try:
                 log_file_counter += 1
                 # print('[%4d] %s => %s' % (log_file_counter, log, meta_dict))
@@ -150,6 +156,7 @@ def log_to_csv(log_path: Path, outfile: Path):
                 frag_list_dict = {}
                 allo_list_dict = {}
                 cdol_list_dict = {'id':[], 'event':[], 'pod_name':[], 'cum_pod':[0]}
+                pwr_list_dict = {}
                 cdol_pod_dict = {}
 
                 counter = 0
@@ -256,6 +263,21 @@ def log_to_csv(log_path: Path, outfile: Path):
                                 else:
                                     allo_list_dict[key] = [val]
 
+                    # Parse results concerning the cluster's power consumption.
+                    if line.startswith("[Power]"):
+                        _, pwCluster, pwCPU, pwGPU = line.split(';')
+                        pwCluster = float(pwCluster.split(':')[1].strip())
+                        pwCPU = float(pwCPU.split(':')[1].strip())
+                        pwGPU = float(pwGPU.split(':')[1].strip()[:-2])
+
+                        keys = ["power_cluster", "power_cluster_CPU", "power_cluster_GPU"]
+                        values = [pwCluster, pwCPU, pwGPU]
+                        for key, val in zip(keys, values):
+                            if key in pwr_list_dict:
+                                pwr_list_dict[key].append(val)
+                            else:
+                                pwr_list_dict[key] = [val]
+
                     # out_cdol_col_dict -- for online create/delete logs, extract their cumulative pod number
                     if "attempt to" in line:
                         cdol_meat = line.split()
@@ -312,6 +334,8 @@ def log_to_csv(log_path: Path, outfile: Path):
                     out_frag_col_dict[meta_as_key+"-"+k] = v
                 for k, v in allo_list_dict.items():
                     out_allo_col_dict[meta_as_key+"-"+k] = v
+                for k, v in pwr_list_dict.items():
+                    out_pwr_col_dict[meta_as_key+"-"+k] = v
                 cdol_list_dict['cum_pod'] = cdol_list_dict['cum_pod'][1:]
                 if len(cdol_list_dict['cum_pod']) > 0:
                     for k, v in cdol_list_dict.items():
@@ -333,6 +357,9 @@ def log_to_csv(log_path: Path, outfile: Path):
     if len(out_cdol_col_dict) > 0:
         df = pd.DataFrame().from_dict(out_cdol_col_dict, orient='index').T
         df.to_csv(out_cdol_path, index=None)
+    if len(out_pwr_col_dict) > 0:
+        df = pd.DataFrame().from_dict(out_pwr_col_dict, orient='index').T
+        df.to_csv(out_pwr_path, index=None)
     
 
 def failed_pods_in_detail(log_path, outfile=None):
