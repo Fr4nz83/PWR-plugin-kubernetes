@@ -1,7 +1,7 @@
 # Usage: python3 generate_run_scripts.py > run_scripts.sh
 
 
-DATE = "2023_0511" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
+DATE = "2024_0531" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
 REPEAT = 10 # Number of repetitive experiments.
 FILELIST = [
@@ -37,6 +37,7 @@ AllMethodList = [
 #    ["05", "BestFit", "<none>", "<none>", "<none>"],
     ["06", "FGD", "<self>", "share", "max"],
     ["07", "PWR", "<self>", "share", "max"],
+    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
@@ -49,15 +50,16 @@ for item in AllMethodList:
 
 MethodList = AllMethodList.copy()
 
-MethodList = [
+# MethodList = [
 #    ["01", "Random", "random", "<none>", "<none>"],
 #    ["02", "DotProd", "best", "merge", "max"],
 #    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
 #    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
 #    ["05", "BestFit", "<none>", "<none>", "<none>"],
-    ["06", "FGD", "<self>", "share", "max"],
-    ["07", "PWR", "<self>", "share", "max"],
-]
+#    ["06", "FGD", "<self>", "share", "max"],
+#    ["07", "PWR", "<self>", "share", "max"],
+#    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
+#]
 
 def get_dir_name_from_method(method_input):
     if len(method_input) != 5:
@@ -65,7 +67,7 @@ def get_dir_name_from_method(method_input):
         return "default_name"
     id, policy, gsm, dem, nm = method_input
     gsm = policy if gsm == "<self>" else gsm # no need to adjust, except that <self> is not allowed in bash. generate_config_and_run will recover the policy's full name
-    dir_name = "%s-%s" % (id, policy)
+    dir_name = "%s-%s" % (id, policy.replace(' ', '_')) # If a policy contains multiple plugins, and thus multiple weights, replace the blank spaces with '_'.
     suffix = ""
     suffix += '_%s' % gsm if gsm != "<none>" else ''
     suffix += '_%s' % dem if dem != "<none>" else ''
@@ -104,12 +106,20 @@ def generate_run_scripts(asyncc=True, parallel=16):
                     SHUFFLE_POD = True
                     outstr = "# %s, %s, %s, %s, %s @ %s\n" % (id, policy, gsm, dem, nm, filename)
                     outstr += 'EXPDIR="experiments/%s/%s/%s/%s/%s' % (DATE, filename, dir_name, tune_ratio, tune_seed)
-                    outstr += '" && mkdir -p ${EXPDIR} && touch "${EXPDIR}/terminal.out" && '
+                    outstr += '" && mkdir -p "${EXPDIR}" && touch "${EXPDIR}/terminal.out" && '
                     outstr += 'python3 scripts/generate_config_and_run.py -d "${EXPDIR}" '
                     outstr += '-e -b '
                     outstr += '-f %s ' % file
 
-                    outstr += '-%s 1000 ' % policy
+                    # Case 1 - we are using a single scoring plugin
+                    policies_args = policy.split()
+                    if len(policies_args) == 1 :
+                        outstr += '-%s 1000 ' % policy
+                    # Case 2 - we are using multiple scoring plugins, each with its own weight
+                    else :
+                        for i in range(len(policies_args) // 2) :
+                            outstr += f'-{policies_args[i*2]} {policies_args[i*2 + 1]} '
+
 
                     outstr += '-gpusel %s ' % gsm if gsm != "<none>" else ''
                     outstr += '-dimext %s ' % dem if dem != "<none>" else ''
@@ -133,8 +143,8 @@ def generate_run_scripts(asyncc=True, parallel=16):
         print("wait && date")
 
 if __name__=='__main__':
-    # generate_run_scripts(asyncc=True)
+    generate_run_scripts(asyncc=True, parallel=12)
     #: $ bash run_scripts.txt
-    generate_run_scripts(asyncc=False)
+    # generate_run_scripts(asyncc=False)
     #: $ cat run_scripts.txt | while read i; do printf "%q\n" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
 
