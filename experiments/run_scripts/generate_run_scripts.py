@@ -143,7 +143,7 @@ def generate_run_scripts(asyncc=True, parallel=16):
         print("wait && date")
 
 if __name__=='__main__':
-    generate_run_scripts(asyncc=True, parallel=12)
+    generate_run_scripts(asyncc=True, parallel=6)
     #: $ bash run_scripts.txt
     # generate_run_scripts(asyncc=False)
     #: $ cat run_scripts.txt | while read i; do printf "%q\n" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
