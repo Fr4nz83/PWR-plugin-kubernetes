@@ -1258,7 +1258,7 @@ func (sim *Simulator) tuneDownPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuni
 }
 
 func (sim *Simulator) tuneUpPods(pods []*corev1.Pod, cfg v1alpha1.WorkloadTuningConfig) []*corev1.Pod {
-	// Iteratively add random pods from the original workload until "sim.podTotalMilliGpuReq) > tuneRatio*float64(sim.nodeTotalMilliGpu" is met.
+	// Iteratively add random pods from the original workload until "sim.podTotalMilliGpuReq > tuneRatio*sim.nodeTotalMilliGpu" is met.
 	tuneRatio := cfg.Ratio
 	n := len(sim.workloadPods)
 	i := 0

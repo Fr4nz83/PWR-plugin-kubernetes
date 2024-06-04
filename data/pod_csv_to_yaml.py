@@ -15,6 +15,7 @@ DATA_DELETION_TIME = "deletion_time"
 ResourceName = "alibabacloud.com/gpu-milli"      # GPU milli, i.e., 1000 == 1 GPU, for pod only, node is 1000 by default
 CountName    = "alibabacloud.com/gpu-count"      # GPU number request (or allocatable), for pod and node
 DeviceIndex  = "alibabacloud.com/gpu-index"      # Exists when the pod are assigned/predefined to a GPU device
+CpuModelName = "alibabacloud.com/cpu-model"      # CPU model, for pod and node
 ModelName    = "alibabacloud.com/gpu-card-model" # GPU card model, for pod and node
 AssumeTime   = "alibabacloud.com/assume-time"    # To retrieve the scheduling latency
 CreationTime = "alibabacloud.com/creation-time"  # creation timestamp
@@ -152,8 +153,3 @@ if __name__ == '__main__':
     pod_yaml_file = output_dir_path / (pod_csv_file.stem + '.yaml') # .csv to .yaml
     output_pod(dfp, pod_yaml_file, node_select=False)
     print("OUTPUT: %s (len: %d)" % (pod_yaml_file, len(dfp)))
-
-
-
-
-
