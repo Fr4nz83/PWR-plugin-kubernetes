@@ -21,28 +21,6 @@ $ go mod vendor
 $ make
 ```
 
-### Run within Docker
-
-To save your time in the environment setup, we have just prepared a docker [image](https://hub.docker.com/r/qzweng/kubernetes-scheduler-simulator) with Golang 1.20.4, Python 3.10.11, and required libraries installed.
-
-Besides, we have copied the GitHub repo under the home directory and compile the executable binary file (`bin/simon`), therefore, `go mod vendor` and `make` commands are no longer needed.
-
-For the users not familiar with Docker, please refer to the official installation [guide](https://docs.docker.com/engine/install) on Linux, Mac, or Windows platform. For the others, the following commands are for your reference.
-
-```bash
-# step 1: pull image
-sudo docker pull qzweng/kubernetes-scheduler-simulator:atc23
-
-# step 2: launch the docker container
-sudo docker run -d --name=kss qzweng/kubernetes-scheduler-simulator:atc23 bash -c "sleep infinity"
-
-# step 3: execute commands inside the container
-sudo docker exec -it kss bash
-
-# step 4: go to the project folder and conduct experiments
-cd ~/kubernetes-scheduler-simulator
-```
-
 ## 🔥 Quickstart Example
 
 The following example will schedule 6 pods to a cluster with 2 nodes, and the expected output will show the allocation ratio of each resource dimension (CPU, memory, GPU).
