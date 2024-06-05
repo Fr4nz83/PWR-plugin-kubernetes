@@ -32,9 +32,9 @@ var MapGpuTypeMemoryMiB = map[string]int64{
 	"3090":    int64(25446842368 / 1024 / 1024), // 24268 MiB, "GeForce-RTX-3090"
 	"V100M32": int64(34089205760 / 1024 / 1024), // 32510 MiB, "Tesla-V100-SXM2-32GB", "Tesla-V100S-PCIE-32GB"
 	"A100":    int64(85198045184 / 1024 / 1024), // 81251 MiB, "A100", "A100-SXM4-80GB"
-	"G1":      int64(1048576000 / 1024 / 1024),  // 10000 MiB,
-	"G2":      int64(20971520000 / 1024 / 1024), // 20000 MiB,
-	"G3":      int64(31457280000 / 1024 / 1024), // 30000 MiB,
+	"G1":      int64(1048576000 / 1024 / 1024),  // 10000 MiB, // Not appearing in the traces
+	"G2":      int64(20971520000 / 1024 / 1024), // 20000 MiB, // Perhaps A10s
+	"G3":      int64(31457280000 / 1024 / 1024), // 30000 MiB, // Probably A100s
 }
 
 // The map of maps below stores the idle/max power consumption (in watts), as well as the number of cores, of several CPU models.
@@ -66,9 +66,6 @@ var MapGpuTypeEnergyConsumption = map[string]map[string]float64{
 	"V100M16": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
 	"V100M32": {"idle": float64(30), "full": float64(300)}, // From https://sc20.supercomputing.org/proceedings/tech_poster/poster_files/rpost131s2-file2.pdf
 	"A100":    {"idle": float64(50), "full": float64(400)}, // From https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
-	"G1":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
-	"G2":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
-	"G3":      {"idle": float64(25), "full": float64(250)}, // For now, uses fake idle and full values.
 }
 
 func modelEnergyNodeT4(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
@@ -101,19 +98,14 @@ func modelEnergyNodeA100(num_idle_GPUs float64, num_occupied_GPUs float64) (powe
 		(MapGpuTypeEnergyConsumption["A100"]["full"] * num_occupied_GPUs)
 }
 
-func modelEnergyNodeG1(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
-	return (MapGpuTypeEnergyConsumption["G1"]["idle"] * num_idle_GPUs) +
-		(MapGpuTypeEnergyConsumption["G1"]["full"] * num_occupied_GPUs)
-}
-
 func modelEnergyNodeG2(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
-	return (MapGpuTypeEnergyConsumption["G2"]["idle"] * num_idle_GPUs) +
-		(MapGpuTypeEnergyConsumption["G2"]["full"] * num_occupied_GPUs)
+	return (MapGpuTypeEnergyConsumption["A10"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["A10"]["full"] * num_occupied_GPUs)
 }
 
 func modelEnergyNodeG3(num_idle_GPUs float64, num_occupied_GPUs float64) (power float64) {
-	return (MapGpuTypeEnergyConsumption["G3"]["idle"] * num_idle_GPUs) +
-		(MapGpuTypeEnergyConsumption["G3"]["full"] * num_occupied_GPUs)
+	return (MapGpuTypeEnergyConsumption["A100"]["idle"] * num_idle_GPUs) +
+		(MapGpuTypeEnergyConsumption["A100"]["full"] * num_occupied_GPUs)
 }
 
 // Initialize the map with the wrapper functions
@@ -124,7 +116,6 @@ var MapGpuTypeModelEnergy = map[string]func(float64, float64) float64{
 	"V100M16": modelEnergyNodeV100M16,
 	"V100M32": modelEnergyNodeV100M32,
 	"A100":    modelEnergyNodeA100,
-	"G1":      modelEnergyNodeG1,
-	"G2":      modelEnergyNodeG2,
-	"G3":      modelEnergyNodeG3,
+	"G2":      modelEnergyNodeG2, // Assume these are A10s, since Alibaba nodes mounting these GPUs have very large CPU (96) and RAM (393GiB) resources.
+	"G3":      modelEnergyNodeG3, // Assume these are A100s, since Alibaba nodes mounting these GPUs have very large CPU (128) and RAM (786GiB) resources.
 }
