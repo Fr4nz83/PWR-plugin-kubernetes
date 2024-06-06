@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Folder containing the CSVs and YAMLs from the original traces used to prepare the nodes' and pods' YAMLs for the various experiments.
-INDIR="new/"
+INDIR=""
 
 # Based on trace files in csv/, we will generate 23 trace folders (in parallel) that will be used as input folder for the simulator
 for file in ${INDIR}csv/openb_pod_list*; do
