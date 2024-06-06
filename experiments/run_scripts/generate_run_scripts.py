@@ -1,7 +1,7 @@
 # Usage: python3 generate_run_scripts.py > run_scripts.sh
 
 
-DATE = "2024_0531" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
+DATE = "2024_0606" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
 REPEAT = 10 # Number of repetitive experiments.
 FILELIST = [
@@ -21,7 +21,7 @@ FILELIST = [
 #    "data/openb_pod_list_gpuspec10",
 #    "data/openb_pod_list_gpuspec20",
 #    "data/openb_pod_list_gpuspec25",
-#    "data/openb_pod_list_gpuspec33",
+    "data/openb_pod_list_gpuspec33",
     #: Fig. 12 Various proportion of multi-GPU tasks
 #    "data/openb_pod_list_multigpu20",
 #    "data/openb_pod_list_multigpu30",
@@ -38,6 +38,8 @@ AllMethodList = [
     ["06", "FGD", "<self>", "share", "max"],
     ["07", "PWR", "<self>", "share", "max"],
     ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
+    ["09", "PWR 300 FGD 700", "FGD", "share", "max"],
+    ["10", "PWR 100 FGD 900", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
