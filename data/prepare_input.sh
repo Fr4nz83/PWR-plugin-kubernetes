@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Folder containing the CSVs and YAMLs from the original traces used to prepare the nodes' and pods' YAMLs for the various experiments.
+# Folder containing the CSVs and YAMLs generated from the original traces used to 
+# prepare the nodes' and pods' YAMLs for the various experiments.
 INDIR=""
 
 # Based on trace files in csv/, we will generate 23 trace folders (in parallel) that will be used as input folder for the simulator

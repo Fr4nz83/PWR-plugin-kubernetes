@@ -1,6 +1,5 @@
 # Usage: python3 generate_run_scripts.py > run_scripts.sh
 
-
 DATE = "2024_0606" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
 REPEAT = 10 # Number of repetitive experiments.
@@ -30,7 +29,7 @@ FILELIST = [
 ]
 
 AllMethodList = [
-#    ["01", "Random", "random", "<none>", "<none>"],
+    ["01", "Random", "random", "<none>", "<none>"],
 #    ["02", "DotProd", "best", "merge", "max"],
 #    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
 #    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
@@ -39,7 +38,8 @@ AllMethodList = [
     ["07", "PWR", "<self>", "share", "max"],
     ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
     ["09", "PWR 300 FGD 700", "FGD", "share", "max"],
-    ["10", "PWR 100 FGD 900", "FGD", "share", "max"],
+    ["10", "PWR 200 FGD 800", "FGD", "share", "max"],
+    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
@@ -145,8 +145,7 @@ def generate_run_scripts(asyncc=True, parallel=16):
         print("wait && date")
 
 if __name__=='__main__':
-    generate_run_scripts(asyncc=True, parallel=6)
+    generate_run_scripts(asyncc=True, parallel=24)
     #: $ bash run_scripts.txt
     # generate_run_scripts(asyncc=False)
     #: $ cat run_scripts.txt | while read i; do printf "%q\n" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
-
