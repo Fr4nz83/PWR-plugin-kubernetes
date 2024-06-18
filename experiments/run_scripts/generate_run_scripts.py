@@ -5,43 +5,43 @@ REMARK = "Artifacts"
 REPEAT = 10 # Number of repetitive experiments.
 FILELIST = [
     #: Main results in Fig. 7 and 9
-    "data/openb_pod_list_default",
+##    "data/openb_pod_list_default",
     #: Fig. 14 Various proportion of non-GPU tasks
 #    "data/openb_pod_list_cpu050",
 #    "data/openb_pod_list_cpu100",
 #    "data/openb_pod_list_cpu200",
 #    "data/openb_pod_list_cpu250",
     #: Fig. 11 Various proportion of GPU-sharing tasks
-#    "data/openb_pod_list_gpushare100",
-#    "data/openb_pod_list_gpushare40",
-#    "data/openb_pod_list_gpushare60",
-#    "data/openb_pod_list_gpushare80",
+    "data/openb_pod_list_gpushare100",
+    "data/openb_pod_list_gpushare40",
+    "data/openb_pod_list_gpushare60",
+    "data/openb_pod_list_gpushare80",
     #: Fig. 13 Various proportion of tasks with GPU-type constraints
-#    "data/openb_pod_list_gpuspec10",
-#    "data/openb_pod_list_gpuspec20",
-#    "data/openb_pod_list_gpuspec25",
-    "data/openb_pod_list_gpuspec33",
+    "data/openb_pod_list_gpuspec10",
+    "data/openb_pod_list_gpuspec20",
+    "data/openb_pod_list_gpuspec25",
+##    "data/openb_pod_list_gpuspec33",
     #: Fig. 12 Various proportion of multi-GPU tasks
-#    "data/openb_pod_list_multigpu20",
-#    "data/openb_pod_list_multigpu30",
-#    "data/openb_pod_list_multigpu40",
-#    "data/openb_pod_list_multigpu50",
+    "data/openb_pod_list_multigpu20",
+    "data/openb_pod_list_multigpu30",
+    "data/openb_pod_list_multigpu40",
+    "data/openb_pod_list_multigpu50",
 ]
 
 AllMethodList = [
-#    ["01", "Random", "random", "<none>", "<none>"],
+    ["01", "Random", "random", "<none>", "<none>"],
     ["02", "DotProd", "best", "merge", "max"],
     ["03", "GpuClustering", "<none>", "<none>", "<none>"],
     ["04", "GpuPacking", "<none>", "<none>", "<none>"],
     ["05", "BestFit", "<none>", "<none>", "<none>"],
-#    ["06", "FGD", "<self>", "share", "max"],
-#    ["07", "PWR", "<self>", "share", "max"],
-#    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
-#    ["09", "PWR 300 FGD 700", "FGD", "share", "max"],
-#    ["10", "PWR 200 FGD 800", "FGD", "share", "max"],
-#    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
-#    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
-#    ["13", "PWR 25 FGD 975", "FGD", "share", "max"],
+    ["06", "FGD", "<self>", "share", "max"],
+    ["07", "PWR", "<self>", "share", "max"],
+    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
+    ["09", "PWR 300 FGD 700", "FGD", "share", "max"],
+    ["10", "PWR 200 FGD 800", "FGD", "share", "max"],
+    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
+    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
+    ["13", "PWR 25 FGD 975", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
