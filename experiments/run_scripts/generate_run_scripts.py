@@ -37,11 +37,8 @@ AllMethodList = [
     ["06", "FGD", "<self>", "share", "max"],
     ["07", "PWR", "<self>", "share", "max"],
     ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
-    ["09", "PWR 300 FGD 700", "FGD", "share", "max"],
-    ["10", "PWR 200 FGD 800", "FGD", "share", "max"],
     ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
     ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
-    ["13", "PWR 25 FGD 975", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
