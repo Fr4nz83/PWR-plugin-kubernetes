@@ -57,6 +57,7 @@ type Simulator struct {
 	customConfig    v1alpha1.CustomConfig
 	fragMemo        sync.Map
 	arrPodGpuMilli  int64
+	arrPodCpuMilli  int64
 
 	podTotalMilliCpuReq int64
 	podTotalMilliGpuReq int64
@@ -381,6 +382,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 	// IMPORTANT: in this for cycle, we are scheduling the pods! "pods" contains Pod creation and deletion events.
 	var failedPods []simontype.UnscheduledPod
 	sim.arrPodGpuMilli = 0
+	sim.arrPodCpuMilli = 0
 	for i, pod := range pods {
 		// Case 0 - Check if the pod has an unscheduled annotation. Unscheduled annotations represent a mechanism used to mark pods that have failed to be
 		//          scheduled onto a node in the cluster. When a pod cannot be scheduled due to resource constraints or other issues, Kubernetes adds an
@@ -403,6 +405,7 @@ func (sim *Simulator) SchedulePods(pods []*corev1.Pod) []simontype.UnscheduledPo
 		if deletionTime == nil {
 			podRes := utils.GetPodResource(pod)
 			sim.arrPodGpuMilli += podRes.TotalMilliGpu()
+			sim.arrPodCpuMilli += podRes.MilliCpu
 
 			log.Infof("[%d] attempt to create pod(%s)\n", i, utils.GeneratePodKey(pod))
 			log.Infof("Characteristics of pod(%s): %s\n", utils.GeneratePodKey(pod), utils.GetPodResource(pod).Repr())

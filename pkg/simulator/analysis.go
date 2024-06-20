@@ -73,8 +73,9 @@ func (sim *Simulator) ClusterGpuFragReport() {
 	var clusterFragBellman float64
 	var clusterUsedNodes int      // num. of used nodes
 	var clusterUsedGpus int       // num. of used GPUs
-	var clusterUsedGpuMilli int64 // num. of used GPU in Milli
+	var clusterUsedGpuMilli int64 // num. of used GPUs in Milli
 	var clusterTotalGpus int      // num. of total GPUs in the cluster
+	var clusterUsedCpuMilli int64 // num. of used CPUs in Milli
 
 	var nodeCnt int = 0
 	for _, ns := range nodeStatus {
@@ -90,6 +91,7 @@ func (sim *Simulator) ClusterGpuFragReport() {
 				clusterUsedNodes += 1
 				clusterUsedGpus += nodeRes.GpuNumber // treat all GPUs on that node are "used"
 				clusterUsedGpuMilli += int64(nodeRes.GpuNumber*gpushareutils.MILLI) - nodeRes.GetTotalMilliGpuLeft()
+				clusterUsedCpuMilli += nodeRes.MilliCpuCapacity - nodeRes.MilliCpuLeft
 			}
 		}
 		nodeCnt += 1
@@ -112,6 +114,8 @@ func (sim *Simulator) ClusterGpuFragReport() {
 	//}
 	log.Infof("[Alloc]; Used nodes: %d; Used GPUs: %d; Used GPU Milli: %d; Total GPUs: %d; Arrived GPU Milli: %d\n",
 		clusterUsedNodes, clusterUsedGpus, clusterUsedGpuMilli, clusterTotalGpus, sim.arrPodGpuMilli)
+	log.Infof("[AllocCPU]; Used CPU Milli: %d; Arrived CPU Milli: %d\n",
+		clusterUsedCpuMilli, sim.arrPodCpuMilli)
 }
 
 func (sim *Simulator) ReportFragBasedOnSkyline() {
