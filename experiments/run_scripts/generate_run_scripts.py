@@ -5,7 +5,7 @@ REMARK = "Artifacts"
 REPEAT = 10 # Number of repetitive experiments.
 FILELIST = [
     #: Main results in Fig. 7 and 9
-##    "data/openb_pod_list_default",
+    "data/openb_pod_list_default",
     #: Fig. 14 Various proportion of non-GPU tasks
 #    "data/openb_pod_list_cpu050",
 #    "data/openb_pod_list_cpu100",
@@ -20,7 +20,7 @@ FILELIST = [
     "data/openb_pod_list_gpuspec10",
     "data/openb_pod_list_gpuspec20",
     "data/openb_pod_list_gpuspec25",
-##    "data/openb_pod_list_gpuspec33",
+    "data/openb_pod_list_gpuspec33",
     #: Fig. 12 Various proportion of multi-GPU tasks
     "data/openb_pod_list_multigpu20",
     "data/openb_pod_list_multigpu30",
@@ -37,6 +37,7 @@ AllMethodList = [
     ["06", "FGD", "<self>", "share", "max"],
     ["07", "PWR", "<self>", "share", "max"],
     ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
+    ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
     ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
     ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
 ]
