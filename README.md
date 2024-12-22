@@ -1,11 +1,12 @@
-# 🚀 Kubernetes Scheduler Simulator
+This repository contains the code behind the main contributions and experimental evaluation presented in the paper "*Power- and Fragmentation-aware Online Scheduling for GPU Datacenters*". **TODO: add arXiv reference.**
 
-The simulator evaluates different scheduling policies in GPU-sharing clusters.
-It includes the Fragmentation Gradient Descent (FGD) policy proposed in the [USENIX ATC 2023](https://www.usenix.org/conference/atc23) paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/conference/atc23/presentation/weng)", along with other baseline policies (e.g., Best-fit, Dot-product, GPU Packing, GPU Clustering, Random-fit). 
+Our repository is a fork of the one behind the paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)"; we build on previous code to:
 
-## 🚧 Environment Setup
+1. introduce our power-aware online scheduling policy, PWR, in the form of a Kubernetes scoring plugin;
+2. slightly customize the simulator to support power consumption telemetry;
+3. provide the Python scripts behind the extensive experimental evaluation conducted in our paper, to make it reproducible.
 
-### Build from stratch
+## How to compile the code
 
 Please ensure that Go is installed.
 
@@ -21,20 +22,18 @@ $ go mod vendor
 $ make
 ```
 
-## 🔮 Experiments on Production Traces
+## How to reproduce our experimental evaluation
 
-Install the required Python dependency environment.
+The Python dependencies required to run the Python scripts behind our experimental evaluation are listed in the file requirements.txt. They can be installed by executing:
 
 ```bash
 $ pip install -r requirements.txt
 ```
 
-1. Please refer to [README](data/README.md) under the `data` directory to prepare production traces.
-2. Then refer to [README](experiments/README.md) under the `experiments` directory to reproduce the results reported in the paper.
+1. Please refer to [README](data/README.md) under the `data` directory to prepare production traces. **TODO: update the document**.
+2. Then refer to [README](experiments/README.md) under the `experiments` directory to reproduce the results reported in the paper. **TODO: update the document**.
 
 
-## 🙏🏻 Acknowledge
+## Cite us
 
-Our simulator is developed based on [open-simulator](https://github.com/alibaba/open-simulator) by Alibaba, a simulator used for cluster capacity planning. 
-This repository primarily evaluates the performance of different scheduling polices on production traces.
-GPU-related plugin has been merged into the main branch of [open-simulator](https://github.com/alibaba/open-simulator).
+**TODO**.
