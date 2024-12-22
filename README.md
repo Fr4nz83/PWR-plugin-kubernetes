@@ -1,8 +1,8 @@
 This repository contains the code behind the main contributions and experimental evaluation presented in the paper "*Power- and Fragmentation-aware Online Scheduling for GPU Datacenters*". **TODO: add arXiv reference.**
 
-Our repository is a fork of the one behind the paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)"; we build on previous code to:
+Our repository is a fork of the repository behind the paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)". More specifically, we build their code to:
 
-1. introduce our power-aware online scheduling policy, PWR, in the form of a Kubernetes scoring plugin;
+1. introduce our power-aware online scheduling policy, **PWR**, in the form of a Kubernetes scoring plugin;
 2. slightly customize the simulator to support power consumption telemetry;
 3. provide the Python scripts behind the extensive experimental evaluation conducted in our paper, to make it reproducible.
 
