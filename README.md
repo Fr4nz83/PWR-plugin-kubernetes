@@ -2,7 +2,7 @@ This repository contains the code behind the main contributions and experimental
 
 This repository started as a fork of the repository behind the paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)", and includes the code behind our paper's contributions:
 
-1. introduce our power-aware online scheduling policy, **PWR**, in the form of a Kubernetes scoring plugin;
+1. introduce our power-aware online scheduling policy, **PWR**, in the form of a Kubernetes scoring plugin. The core of the PWR plugin can be found in [pwr_score.go](pkg/simulator/plugin/pwr_score.go);
 2. slightly customized the simulator to support power consumption telemetry;
 3. provide the Python and Bash scripts used for the paper's experimental evaluation, to ensure reproducibility.
 
