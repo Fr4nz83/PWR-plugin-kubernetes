@@ -50,7 +50,7 @@ Here's a sample output:
 
 ## Notes on the workload traces
 
-The original traces are stored in the csv folder. To illustrate the information contained in these csv, as an example we report the brief overview on the content of the Default trace. Text is taken from the README.md of the original repository)
+The original traces are stored in CSV format in the `csv` folder. To illustrate the information contained in these CSVs, we provide a brief overview of the Default trace's content. Text is taken from the README.md of the original repository.
 
 ### [openb_pod_list_default.csv](./csv/openb_pod_list_default.csv)
 
