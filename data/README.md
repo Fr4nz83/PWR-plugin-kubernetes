@@ -11,10 +11,10 @@ The ```data``` folder contains the following elements:
 
 # How to generate the YAMLs of the traces used by the simulator
 
-The simulator requires two different YAML files to run an experiments:
+The simulator requires two different YAML files to run an experiment:
 
 - a YAML file that contains the **specifications of the nodes of the simulated GPU datacenter**. This is already provided in the ```node_yaml``` subfolder, hence you don't have to do nothing.
-- a YAML file that represents an actual trace, i.e., **a sequence of pods with the resources they require from the GPU datacenter**. In our paper, the pods correspond to the tasks.
+- a YAML file that represents an actual trace, i.e., **a sequence of pods with the resources they require from the GPU datacenter**. In our paper, the pods correspond to the tasks. The simulator uses the original trace to generate a workload with the trace's characteristics.
 
 The original traces are stored in CSV files in the ```csv``` folder. Thus, the user must translate these CSVs to YAMLs, and they can do so by executing the bash script ```bash prepare_input.sh``` as follows:
 
@@ -25,13 +25,14 @@ $ bash prepare_input.sh
 This will output a set of YAMLs in the ```trace``` folder.
 
 
-## More on the nodes of the simulated GPU datacenter
+## Notes on the nodes of the simulated GPU datacenter
 
-### [openb_node_list_all_node.csv](./csv/openb_node_list_all_node.csv)
+In the following, a brief overview concerning the specifications of the nodes of the simulated GPU datacenter is provided. Text is from the README.md of the original repository, and presents the specifications according to the content and format used in [openb_node_list_all_node.csv](./csv/openb_node_list_all_node.csv).
 
-This CSV contains 1523 nodes of a heterogeneous GPU cluster in production, listing their CPU, main memory, GPU specifications and GPU types.
+More precisely, this CSV contains 1523 nodes of a heterogeneous GPU cluster in production, listing their CPU, main memory, GPU specifications and GPU types.
 
-[openb_node_list_gpu_node.csv](./csv/openb_node_list_gpu_node.csv) is a subset excluding non-GPU nodes. [openb_node_list_gpu_node.yaml](./node_yaml/openb_node_list_gpu_node.yaml) contains the same data in YAML format.
+[openb_node_list_gpu_node.csv](./csv/openb_node_list_gpu_node.csv) is a subset excluding non-GPU nodes. 
+[openb_node_list_gpu_node.yaml](./node_yaml/openb_node_list_gpu_node.yaml) contains the same data in YAML format.
 
 Here's a sample output:
 
@@ -47,9 +48,9 @@ Here's a sample output:
 - `model`: GPU type. G1, G2, G3 are undisclosed internal GPU codes.
 
 
-## More on the workload traces
+## Notes on the workload traces
 
-The original traces are stored in the csv folder. To illustrate the information contained in these csv, as an example we report the brief overview on the content of the Default trace (from the README.md of the original repository).
+The original traces are stored in the csv folder. To illustrate the information contained in these csv, as an example we report the brief overview on the content of the Default trace. Text is taken from the README.md of the original repository)
 
 ### [openb_pod_list_default.csv](./csv/openb_pod_list_default.csv)
 
