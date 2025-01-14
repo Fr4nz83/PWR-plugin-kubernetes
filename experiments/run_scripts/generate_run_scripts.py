@@ -2,26 +2,28 @@
 
 DATE = "2024_0606" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
-REPEAT = 10 # Number of repetitive experiments.
+REPEAT = 10 # Number of repeats for each experiment.
+PARALLEL_SIMULATIONS = 12 # Number of simulations that will be run in parallel.
+
 FILELIST = [
-    #: Main results in Fig. 7 and 9
+    # Default trace
     "data/openb_pod_list_default",
-    #: Fig. 14 Various proportion of non-GPU tasks
+    # no-GPU traces (not used in the paper's experimental evaluation)
 #    "data/openb_pod_list_cpu050",
 #    "data/openb_pod_list_cpu100",
 #    "data/openb_pod_list_cpu200",
 #    "data/openb_pod_list_cpu250",
-    #: Fig. 11 Various proportion of GPU-sharing tasks
+    # GPU-sharing traces
     "data/openb_pod_list_gpushare100",
     "data/openb_pod_list_gpushare40",
     "data/openb_pod_list_gpushare60",
     "data/openb_pod_list_gpushare80",
-    #: Fig. 13 Various proportion of tasks with GPU-type constraints
+    # GPU-constrained traces
     "data/openb_pod_list_gpuspec10",
     "data/openb_pod_list_gpuspec20",
     "data/openb_pod_list_gpuspec25",
     "data/openb_pod_list_gpuspec33",
-    #: Fig. 12 Various proportion of multi-GPU tasks
+    # multi-GPU traces
     "data/openb_pod_list_multigpu20",
     "data/openb_pod_list_multigpu30",
     "data/openb_pod_list_multigpu40",
@@ -29,6 +31,7 @@ FILELIST = [
 ]
 
 AllMethodList = [
+    # Experiments with only one active scoring plugin.
     ["01", "Random", "random", "<none>", "<none>"],
     ["02", "DotProd", "best", "merge", "max"],
     ["03", "GpuClustering", "<none>", "<none>", "<none>"],
@@ -36,6 +39,7 @@ AllMethodList = [
     ["05", "BestFit", "<none>", "<none>", "<none>"],
     ["06", "FGD", "<self>", "share", "max"],
     ["07", "PWR", "<self>", "share", "max"],
+    # Experiments with linear combinations of PWR and FGD scoring plugins.
     ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
     ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
     ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
@@ -66,11 +70,13 @@ def get_dir_name_from_method(method_input):
     suffix += '_%s' % nm if nm != "<none>" else ''
     return dir_name # + suffix
 
+
 def get_method_from_policy_id_list(id_list):
     if type(id_list) == list:
         return [AllMethodDict.get("%02d" % id, None) if type(id)==int else AllMethodDict.get("%s" % id, None) for id in id_list]
     else:
         return [AllMethodDict.get("%02d" % id_list, None) if type(id)==int else AllMethodDict.get("%s" % id_list, None)]
+
 
 def get_dir_name_from_policy_id_list(id_list):
     return [get_dir_name_from_method(x) for x in get_method_from_policy_id_list(id_list)]
@@ -78,6 +84,7 @@ def get_dir_name_from_policy_id_list(id_list):
 ###########################################################
 ###########################################################
 ###########################################################
+
 
 def generate_run_scripts(asyncc=True, parallel=16):
     DateAndRemark = DATE + "-" + REMARK.replace(' ', "_").replace('(',"_").replace(')',"_")
@@ -134,8 +141,9 @@ def generate_run_scripts(asyncc=True, parallel=16):
     if asyncc:
         print("wait && date")
 
+
 if __name__=='__main__':
-    generate_run_scripts(asyncc=True, parallel=12)
+    generate_run_scripts(asyncc=True, parallel=PARALLEL_SIMULATIONS)
     #: $ bash run_scripts.txt
     # generate_run_scripts(asyncc=False)
     #: $ cat run_scripts.txt | while read i; do printf "%q\n" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
