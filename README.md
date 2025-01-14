@@ -39,7 +39,7 @@ Then follow these steps:
 
 If you used or appreciated this repository's contributions, please cite the following paper:
 
-Lettich, F., Carlini, E., Nardini, F. M., Perego, R., & Trani, S. (2024). Power-and Fragmentation-aware Online Scheduling for GPU Datacenters. arXiv preprint arXiv:2412.17484.
+Lettich, F., Carlini, E., Nardini, F. M., Perego, R., & Trani, S. (2024). *Power-and Fragmentation-aware Online Scheduling for GPU Datacenters*. arXiv preprint arXiv:2412.17484.
 
 ```
 @misc{lettich2024powerfragmentationawareonlinescheduling,
