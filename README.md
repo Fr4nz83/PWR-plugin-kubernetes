@@ -31,8 +31,8 @@ $ pip install -r requirements.txt
 
 Then follow these steps:
 
-1. translate the production traces from CSV to YAML -- this is required to run the experiments with the simulator. To this end, read [README](data/README.md) under the `data` directory to  **TODO: update the document**.
-2. execute the experiments conducted in the paper. To this end, read [README](experiments/README.md) under the `experiments` directory. **TODO: update the document**.
+1. **translate the production traces from CSV to YAML** -- this is required to run the experiments with the simulator. To this end, read [README](data/README.md) under the `data` directory for more information.
+2. **execute the experiments conducted in the paper**. To this end, read [README](experiments/README.md) under the `experiments` directory for more information. **TODO: update the document**.
 
 
 ## Cite us
