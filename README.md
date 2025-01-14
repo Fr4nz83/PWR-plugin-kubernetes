@@ -10,7 +10,7 @@ It started as a fork of the repository behind the seminal paper "[Beware of Frag
 
 ## How to compile the code
 
-First ensure that Go is installed. Then:
+The code can be theoretically compiled on any platform. First ensure that Go is installed. Then:
 
 `go mod vendor` installs the dependencies required to compile the code. 
 
