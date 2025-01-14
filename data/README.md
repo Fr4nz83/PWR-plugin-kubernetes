@@ -1,15 +1,31 @@
-# How to generate the YAMLs of the traces used in the experiments
+The ```data``` folder contains the following elements:
 
-This folder contains the following elements:
+- ```node_yaml``` (folder): contains the YAML with the specifications of the nodes of the GPU datacenter being simulated;
+- ```csv``` (folder): contains the traces considered in our paper's experimental evaluation;
+- ```bash prepare_input.sh```: bash script that executes the Python script pod_csv_to_yaml.py, which is in charge of translating the traces from CSV to YAML;
+- ```pod_csv_to_yaml.py```: Python script executed by prepare_input.sh;
+- ```0 - Workloads stats.ipynb```: can be used to explore the characteristics of the traces;
+- ```1 - Nodes stats.ipynb```: can be used to explore the characteristics of the nodes of the simulated GPU datacenter;
+- ```2 - Add CPU models to YAML nodes``` (not actually used in the experimental evaluation): can be used to add a CPU model to the nodes of the simulated GPU datacenter.
 
-- node_yaml (folder): this folder contains the YAML containing the specifications of the set of nodes of the GPU datacenter being simulated.
-- csv (folder): this folder contains the traces considered in the experimental evaluation.
-- bash prepare_input.sh: this bash script executes the Python script in charge of generating the YAML files of the traces.
-- pod_csv_to_yaml.py: Python script executed by prepare_input.sh
-- a bunch of Jupyter notebooks that can be used to explore the characteristics of the traces as well as the nodes of the simulated GPU datacenter.
+
+# How to generate the YAMLs of the traces used by the simulator
+
+The simulator requires two different YAML files to run an experiments:
+
+- a YAML file that contains the **specifications of the nodes of the simulated GPU datacenter**. This is already provided in the ```node_yaml``` subfolder, hence you don't have to do nothing.
+- a YAML file that represents an actual trace, i.e., **a sequence of pods with the resources they require from the GPU datacenter**. In our paper, the pods correspond to the tasks.
+
+The original traces are stored in CSV files in the ```csv``` folder. Thus, the user must translate these CSVs to YAMLs, and they can do so by executing the bash script ```bash prepare_input.sh``` as follows:
+
+```bash
+$ bash prepare_input.sh
+```
+
+This will output a set of YAMLs in the ```trace``` folder.
 
 
-## Information on the nodes of the simulated GPU datacenter
+## Nodes of the simulated GPU datacenter
 
 ### [openb_node_list_all_node.csv](./csv/openb_node_list_all_node.csv)
 
@@ -62,12 +78,3 @@ Here's a sample output:
 - `creation_time`: Timestamp of creation (in seconds)
 - `deletion_time`: Timestamp of deletion (in seconds)
 - `scheduled_time`: Timestamp of being scheduled (in seconds)
-
-
-## How to generate the YAMLs of the traces, which are required to run the simulations.
-
-While the YAML file containing the nodes' specifications is already provided in the "node_yaml" folder, the users needs to generate the YAMLs of the traces from the CSVs -- this is required to run the various experiments in the simulator. To generate the YAMLs, the user can execute the Python script below.
-
-```bash
-$ bash prepare_input.sh
-```
