@@ -32,10 +32,11 @@ The Python dependencies required to run the Python scripts behind our experiment
 $ pip install -r requirements.txt
 ```
 
-Then follow these steps:
+Then, to reproduce the experimental pipeline used in our paper, please follow these steps:
 
 1. **translate the production traces from CSV to YAML** -- this is required to run the experiments with the simulator. To this end, read [README](data/README.md) under the `data` directory for more information.
-2. **execute the experiments conducted in the paper**. To this end, read [README](experiments/README.md) under the `experiments` directory for more information. **TODO: update the document**.
+2. **execute the experiments conducted in the paper**. To this end, read [README](experiments/README.md) under the `experiments` directory for more information. Please, be aware that the simulations behind the experiments take a lot of time, depending on the amount of cores available on the machine you'll use. **TODO: update the document**
+3. **extract and plot the results from the logs**. To this end, read ... **TODO: update the document**
 
 
 ## Cite us
