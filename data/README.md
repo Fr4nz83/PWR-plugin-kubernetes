@@ -25,7 +25,7 @@ $ bash prepare_input.sh
 This will output a set of YAMLs in the ```trace``` folder.
 
 
-## Nodes of the simulated GPU datacenter
+## More on the nodes of the simulated GPU datacenter
 
 ### [openb_node_list_all_node.csv](./csv/openb_node_list_all_node.csv)
 
@@ -47,10 +47,9 @@ Here's a sample output:
 - `model`: GPU type. G1, G2, G3 are undisclosed internal GPU codes.
 
 
-## Workload traces
+## More on the workload traces
 
-The original traces are stored in the csv folder. YAML files must be generated from this data (see below). To illustrate the information contained in these csv, as an example
-we report the brief overview on the content of the Default trace (from the README.md of the original repository).
+The original traces are stored in the csv folder. To illustrate the information contained in these csv, as an example we report the brief overview on the content of the Default trace (from the README.md of the original repository).
 
 ### [openb_pod_list_default.csv](./csv/openb_pod_list_default.csv)
 
