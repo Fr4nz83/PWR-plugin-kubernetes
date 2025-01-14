@@ -6,7 +6,7 @@ The ```data``` folder contains the following elements:
 - ```pod_csv_to_yaml.py```: Python script executed by prepare_input.sh;
 - ```0 - Workloads stats.ipynb```: can be used to explore the characteristics of the traces;
 - ```1 - Nodes stats.ipynb```: can be used to explore the characteristics of the nodes of the simulated GPU datacenter;
-- ```2 - Add CPU models to YAML nodes``` (not actually used in the experimental evaluation): can be used to add a CPU model to the nodes of the simulated GPU datacenter.
+- ```2 - Add CPU models to YAML nodes``` (not actually used in the experimental evaluation): can be used to add CPU models to the nodes of the simulated GPU datacenter.
 
 
 # How to generate the YAMLs of the traces used by the simulator
