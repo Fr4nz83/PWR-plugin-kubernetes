@@ -1,11 +1,10 @@
-## Experiment Steps
+# Experimental evaluation pipeline
 
-### 0. Prerequisite: Compiled Binary Files in the `bin` Directory.
+First, ensure the binary file `simon` has been generated in the `bin` directory (see "Environment Setup" in [README](../README.md) for details).
+Then, you can execute the steps below.
 
-Make sure the binary file `simon` has been generated in the `bin` directory (see "🚧 Environment Setup" in [README](../README.md) for details)
 
-
-### 1. Run Scripts Generation
+### 1. Generation of the experiments' scripts
 
 ```bash
 # pwd: kubernetes-scheduler-simulator/experiments
@@ -26,50 +25,18 @@ $ cd ..
 $ cat experiments/run_scripts/run_scripts_0511.sh | while read i; do printf "%q" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
 # "--max-procs=16" where 16 is the degree of PARALLEL suggested above
 # bash run_scripts_0511.sh will run experiments sequentially
-
-#  ..|''||   '|.   '|' '||''''|       '||    ||'  ..|''||   '|.   '|' |''||''| '||'  '||'      '||'          |     |''||''| '||''''|  '||''|.   
-# .|'    ||   |'|   |   ||  .          |||  |||  .|'    ||   |'|   |     ||     ||    ||        ||          |||       ||     ||  .     ||   ||  
-# ||      ||  | '|. |   ||''|          |'|..'||  ||      ||  | '|. |     ||     ||''''||        ||         |  ||      ||     ||''|     ||''|'   
-# '|.     ||  |   |||   ||             | '|' ||  '|.     ||  |   |||     ||     ||    ||        ||        .''''|.     ||     ||        ||   |.  
-#  ''|...|'  .|.   '|  .||.....|      .|. | .||.  ''|...|'  .|.   '|    .||.   .||.  .||.      .||.....| .|.  .||.   .||.   .||.....| .||.  '|'
 ```
 
-To explain the bash script generated (e.g., `run_scripts_0511.sh`)
-- Each experiment is conducted via [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py)
-    - Firstly, the script generates two configuration yaml files in that folder, which are served as input to `bin/simon apply` (i.e., cluster-config and scheduler-config, see "🔥 Quickstart Example" in repo [README](../README.md)), 
-    - Then, it execute the `bin/simon apply` command (confirmed by passing the `-e` parameter to the script)
-    - The `bin/simon`, written in Golang, will schedule the tasks and produce a scheduling log file in the corresponding folder.
-- Afterwards, [scripts/analysis.py](../scripts/analysis.py) is executed to parse logs and yields multiple `analysis_*` files in the folder
+From the original repository's description => to explain the bash script generated (e.g., `run_scripts_0511.sh`):
+- Each experiment is conducted via the Python script [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py). The script conducts an experiment by executing the following three steps:
+    - First, the script generates two configuration yaml files in that folder, which are served as input to `bin/simon apply` (i.e., cluster-config and scheduler-config, see "Quickstart Example" in repo [README](../README.md)), 
+    - Then, it executes the `bin/simon apply` command (confirmed by passing the `-e` parameter to the script)
+    - The simulator's executable, i.e., `bin/simon`, will schedule the tasks and produce a scheduling log file in the corresponding folder.
+- Afterwards, [scripts/analysis.py](../scripts/analysis.py) is executed to parse logs and yields multiple `analysis_*` files in the folder.
 
-An example output from the experiment:
-
-```bash
-# log-cc_owdefault_dr0.0_tn1.3_ts42_if1.0_md7976.yaml-sc_FGD1000_deshare_gsFGDScore_mdaf9c.yaml.log:
-========== Cluster Analysis Results (InitSchedule) ==========
-Allocation Ratio:
-    MilliCpu : 84.0% (89928302/107018000)
-    Memory   : 62.3% (328998433325056/528302452244480)
-    Gpu      : 99.6% (6189/6212)
-    MilliGpu : 95.3% (5919410/6212000)
-q1_lack_both : 138.43 x 10^3 (47.31%)
-q2_lack_gpu  :  85.86 x 10^3 (29.35%)
-q3_satisfied :   1.23 x 10^3 ( 0.42%)
-q4_lack_cpu  :  27.28 x 10^3 ( 9.32%)
-xl_satisfied :   6.06 x 10^3 ( 2.07%)
-xr_lack_cpu  :  33.73 x 10^3 (11.53%)
-no_access    :   0.00 x 10^3 ( 0.00%)
-------------------
-idle_gpu_milli: 292.59 x 10^3 (100.0%)
-frag_gpu_milli: 291.36 x 10^3 (99.58%)
-==============================================
-```
-
-
-In fact, it takes around
+Please, be aware that executing many simulation in parallel takes a lot of computational and memory resources and, depending on the available resources, can take a lot of time. From the original repository, the authors report that it takes around:
 - 10 minutes for 1 experiment on 2 vCPU, 9.4MB disk space for logs.
-- 10 hours for 1020 experiments on a 256 vCPU machine with pool size of 128 threads, 9.4GB disk space for logs.
-
-> Our generated script for 1020 experiments is cached in [run_scripts/expected_run_scripts_0511.sh](./run_scripts/expected_run_scripts_0511.sh) (3063 lines) for your reference.
+- 10 hours for 1020 experiments on a 256 vCPU machine with pool size of 128 threads, 9.4GB disk space for logs
 
 
 ### 3. Analysis & Merge
