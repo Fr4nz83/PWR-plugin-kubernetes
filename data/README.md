@@ -1,12 +1,19 @@
-# Traces as Inputs for Simulator
+# How to generate the YAMLs of the traces used in the experiments
 
-## 🗄️ Traces
+This folder contains the following elements:
 
-Key data is in the csv folder, while yaml files can be generated from this data.
+- node_yaml (folder): this folder contains the YAML containing the specifications of the set of nodes of the GPU datacenter being simulated.
+- csv (folder): this folder contains the traces considered in the experimental evaluation.
+- bash prepare_input.sh: this bash script executes the Python script in charge of generating the YAML files of the traces.
+- pod_csv_to_yaml.py: Python script executed by prepare_input.sh
+- a bunch of Jupyter notebooks that can be used to explore the characteristics of the traces as well as the nodes of the simulated GPU datacenter.
+
+
+## Information on the nodes of the simulated GPU datacenter
 
 ### [openb_node_list_all_node.csv](./csv/openb_node_list_all_node.csv)
 
-This file contains 1523 nodes of a heterogeneous GPU cluster in production, listing their CPU, main memory, GPU specifications and GPU types.
+This CSV contains 1523 nodes of a heterogeneous GPU cluster in production, listing their CPU, main memory, GPU specifications and GPU types.
 
 [openb_node_list_gpu_node.csv](./csv/openb_node_list_gpu_node.csv) is a subset excluding non-GPU nodes. [openb_node_list_gpu_node.yaml](./node_yaml/openb_node_list_gpu_node.yaml) contains the same data in YAML format.
 
@@ -23,13 +30,19 @@ Here's a sample output:
 - `gpu`: Number of GPUs
 - `model`: GPU type. G1, G2, G3 are undisclosed internal GPU codes.
 
+
+## Workload traces
+
+The original traces are stored in the csv folder. YAML files must be generated from this data (see below). To illustrate the information contained in these csv, as an example
+we report the brief overview on the content of the Default trace (from the README.md of the original repository).
+
 ### [openb_pod_list_default.csv](./csv/openb_pod_list_default.csv)
 
 This file contains 8152 tasks submitted to the GPU cluster, listing their resource specifications, QoS, phase and creation/deletion/scheduled times. 
 
 The other openb_pod_list_*.csv files (excluding the gpuspec ones) are sampled from the default one, emphasizing certain types of workloads (e.g., CPU-only tasks, GPU-sharing tasks, multi-GPU tasks).
 
-Trace files with `gpuspec` augment tasks with GPU type requirements. About 33% of GPU tasks in our production cluster have GPU type constraints (see [openb_pod_list_gpuspec33.csv](./csv/openb_pod_list_gpuspec33.csv) and Sec. 6.5 in the "[Beware of Fragmentation](https://www.usenix.org/conference/atc23/presentation/weng)" paper).
+Trace files with `gpuspec` augment tasks with GPU type requirements. About 33% of GPU tasks in the production cluster have GPU type constraints (see also the information in the paper).
 
 Here's a sample output:
 
@@ -51,9 +64,9 @@ Here's a sample output:
 - `scheduled_time`: Timestamp of being scheduled (in seconds)
 
 
-## 🛠 Usage
+## How to generate the YAMLs of the traces, which are required to run the simulations.
 
-Generate the YAML files needed for the simulation experiment based on the original CSV files.
+While the YAML file containing the nodes' specifications is already provided in the "node_yaml" folder, the users needs to generate the YAMLs of the traces from the CSVs -- this is required to run the various experiments in the simulator. To generate the YAMLs, the user can execute the Python script below.
 
 ```bash
 $ bash prepare_input.sh
