@@ -23,7 +23,7 @@ $ make
 
 ## How to reproduce our experimental evaluation's results
 
-The Python dependencies required to run the Python scripts behind our experimental evaluation are listed in the file requirements.txt. They can be installed by executing:
+The Python dependencies required to run the Python scripts behind our experimental evaluation are listed in the file `requirements.txt`. They can be installed by executing:
 
 ```bash
 $ pip install -r requirements.txt
