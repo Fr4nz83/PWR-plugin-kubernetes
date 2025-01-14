@@ -104,35 +104,3 @@ The 0-130 (`130 = tune (1.3) * 100`) represents the total GPU request (normalize
 The other result files show the fragmentation ratio (`analysis_frag_ratio_discrete.csv`, Fig 7(a)), fragmentation amount (`analysis_frag_discrete.csv`, Fig 7(b)), and distribution of failed pods (`analysis_fail.csv`, Fig 9(c)).
 
 > Our results of the extensive 1020 experiments are cached in [analysis/expected_results](./analysis/expected_results/) (9.8MB) for your reference.
-
-
-### 4. Plot
-
-To reproduce the figures shown in the paper, we provide the plotting scripts in the [plot](./plot/) folder. As the scripts assume the existence of the merged `analysis_*.csv` files, we need to first copy (or softlink) these files to [plot](./plot/) folder
-
-```bash
-# pwd: kubernetes-scheduler-simulator/experiments/analysis
-$ cd ..
-# pwd: kubernetes-scheduler-simulator/experiments
-$ cp analysis/analysis_results/* plot/ # copy all csv under analysis_results/ to plot/ for analysis
-```
-
-if you have skipped the extensive experiments and/or would like to use our expected analysis results for plotting, please replace the last command as:
-```bash
-$ cp analysis/expected_results/* plot/
-```
-
-As the final step, step into the [plot](./plot/) folder and generate figures (in pdf format) based on the analysis results. For example, running `python plot_openb_alloc.py` will produce `openb_alloc.pdf` in the current directory, which corresponds to Fig. 9(a) in the paper.
-
-```bash
-$ cd plot
-$ python plot_openb_alloc.py              # Fig. 9(a)
-$ python plot_openb_frag_amount.py        # Fig. 7(a)
-$ python plot_openb_frag_ratio.py         # Fig. 7(b)
-$ python plot_openb_gpushare_alloc_bar.py # Fig. 11
-$ python plot_openb_multigpu_alloc_bar.py # Fig. 12
-$ python plot_openb_gpuspec_alloc_bar.py  # Fig. 13
-$ python plot_openb_nongpu_alloc_bar.py   # Fig. 14
-```
-
-> Our results shown in the paper are cached in [plot/expected_results](plot/expected_results) (164KB) for your reference.
