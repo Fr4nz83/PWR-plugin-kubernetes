@@ -4,7 +4,7 @@ First, ensure the binary file `simon` has been generated in the `bin` directory 
 Then, you can execute the steps below.
 
 
-### 1. Generation of the experiments' scripts
+### 1. Generation of the scripts that execute the simulations
 
 ```bash
 # pwd: kubernetes-scheduler-simulator/experiments
@@ -12,7 +12,7 @@ $ python run_scripts/generate_run_scripts.py > run_scripts/run_scripts_0511.sh
 ```
 
 
-### 2. Execute
+### 2. Execute the simulations
 
 `run_scripts_0511.sh` includes multiple executable commands that are executed sequentially by default.
 You can adjust the `--max-procs` parameter in the following command to modify the number of parallel threads based on the CPU resources available on your machine.
@@ -39,7 +39,7 @@ Please, be aware that executing many simulation in parallel takes a lot of compu
 - 10 hours for 1020 experiments on a 256 vCPU machine with pool size of 128 threads, 9.4GB disk space for logs
 
 
-### 3. Analysis & Merge
+### 3. Analysis of the simulations' results
 
 As each experiment has its own folder where the `analysis_*` files are produced, here we bypass all folders and merge all the analysis files of the same category into one file under the `analysis/analysis_results` folder.
 
