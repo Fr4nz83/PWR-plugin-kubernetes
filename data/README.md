@@ -23,7 +23,7 @@ $ bash prepare_input.sh
 ```
 
 This will output a set of folders, one per trace and with the name of each folder being the same of the CSV trace from which it has been generated. 
-Each folder will contain (1) a YAML with the specifications of the nodes of the datacenter being simulated (this is actually the same for all the folders) and (2) a YAML containing the specifications of the pods of a certain trace.
+Each folder will contain (1) a YAML with the specifications of the nodes of the datacenter being simulated (this is actually the same for all the folders) and (2) a YAML containing the specifications of the pods of the trace being referred by the folder.
 
 
 ## Notes on the nodes of the simulated GPU datacenter
