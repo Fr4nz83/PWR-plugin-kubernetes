@@ -55,7 +55,7 @@ Once again, please be aware that **executing many simulation in parallel takes a
 
 ## 2. Analysis of the simulations' results (part of the text adapted from the original repository)
 
-The folder in which the results of the simulations will be stored in `experiments`, and its name depends on the DATE variable -- e.g., if `DATE=2023_0511`, then this will be the name used for the results' folder. In this folder, you will find the results of the simulations. Each simulation has its own subfolder, where you will find several files with the simulation results. **The files you will be mainly interested into are the `analysis_*` ones**. 
+The folder in which the results of the simulations will be stored will be located in `experiments`. Recall from the [generation of scripts](#11-generation-of-the-scripts-that-execute-the-simulations) Section that the folder's name depends on the DATE variable -- e.g., if `DATE=2023_0511`, then this will be the name used for the results' folder. In this folder, you will find the results of the simulations. Here, each simulation has its own subfolder, where you will find several files with the simulation results. **The files you will be mainly interested into are the `analysis_*` ones**. 
 
 Assume that we are evaluating 6 scheduling policies, and that we are evaluating each policy on 17 different traces, each with its own workload's distributions. Furthermore, asume that for each policy-trace combination, we repeat the simulation 10 times to ensure results' reliability. Thus, in this example we will have a total number of `6 x 17 x 10 = 1020` simulations to conduct. The results of these 1020 simulations will have the following structure:
 
