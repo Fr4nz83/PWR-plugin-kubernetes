@@ -35,16 +35,15 @@ For example:
 $ ./experiments/run_scripts/run_scripts_0511.sh
 ```
 
-(From the original repository's description): each simulation executed by the bash script is, in reality, made of two steps:
-- First, the bash script invokes the Python script [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py). This conducts an experiment by executing the following three sub-steps:
+Each simulation executed by the bash script is, in reality, made of two steps:
+- First, the bash script invokes the Python script [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py). The purpose of this script is to run a simulation and it does so by executing the following three sub-steps:
     - First, the script prepares two configuration YAML files for the simulator in a simulation's subfolder, which are served as input to `bin/simon apply` (i.e., cluster-config and scheduler-config, see "Quickstart Example" in repo [README](../README.md)); 
     - Then, it executes the `bin/simon apply` command (confirmed by passing the `-e` parameter to the script)
     - The simulator's executable, i.e., `bin/simon`, will schedule the tasks and produce a scheduling log file in the corresponding simulation's subfolder.
 - Afterwards, the bash script executes [scripts/analysis.py](../scripts/analysis.py), which parses logs and yields multiple `analysis_*` files in the smulation's subfolder.
 
-Once again, please be aware that **executing many simulation in parallel takes a lot of computational, memory, and storage resources**. Furthermore, depending on the resources you have and the number of simulations that you can run in parallel, running many simulations in **can take a lot of time**. 
+Once again, please be aware that **executing many simulation in parallel takes a lot of computational, memory, and storage resources**. Furthermore, depending on the resources you have and the number of simulations that you can run in parallel, running many simulations in **can take a lot of time**. As a reference, in the original repository the authors of "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" report that it takes around:
 
-As a reference, in the original repository the authors of "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" report that it takes around:
 - 10 minutes for 1 experiment on 2 vCPU, 9.4MB disk space for logs.
 - 10 hours for 1020 experiments on a 256 vCPU machine with pool size of 128 threads, 9.4GB disk space for logs
 
