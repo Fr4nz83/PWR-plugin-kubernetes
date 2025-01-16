@@ -1,6 +1,7 @@
 # Experimental evaluation pipeline
 
-First, you need to ensure that the binary file `simon` has been generated in the `bin` directory. This requires to compile the Go code (see "How to compile the Go code" in [README](../README.md) for details). Secondly, make sure that the traces have been translated from CSV to YAMLs -- to this end, please refer to the [README](../data/README.md) in the `data` directory.
+First, you need to ensure that the binary file `simon` has been generated in the `bin` directory. This requires to compile the Go code, which is detailed in the "How to compile the Go code" section of [README](../README.md).
+Secondly, make sure that the traces have been translated from CSV to YAMLs -- to this end, please refer to the [README](../data/README.md) in the `data` directory.
 
 Once these two operations are done, you are ready to prepare and execute the experimental evaluation pipeline used in our paper.
 
