@@ -8,10 +8,21 @@ Once these two operations are done, you are ready to prepare and execute the exp
 
 ### 1. Generation of the scripts that execute the simulations
 
+The first step requires to generate the bash script in charge of executing a batch of simulations. The Python script `generate_run_scripts.py` is in charge of doing so, and is located in the `experiments/run_scripts` path. For example, you can do so by executing the lines below from the command line:
+
 ```bash
 # pwd: kubernetes-scheduler-simulator/experiments
 $ python run_scripts/generate_run_scripts.py > run_scripts/run_scripts_0511.sh
 ```
+
+Please note that **_you can (and should!)_** customize some of the variables in `generate_run_scripts.py` that regulate the bash script's generation. 
+The Python script has been documented, hence this customization can be easily done. In particular, you should customize the following variables:
+
+- **DATE**: this is simply the name of the folder that will be used to store the simulations' results.
+- **REPEAT**: number of repetitions for simulation conducted with a specific trace. 10 is the value used in our experimental evaluation.
+- **PARALLEL_SIMULATIONS**: number of simulations that the bash script will run in parallel at a time. WARNING: you should select a value compatible with the computational and memory resources you have.
+- **FILELIST**: list containing the names of the traces that will be considered during the simulations. The list contains the traces we considered in our experimental evaluation.
+- **AllMethodList**: the list of scoring plugins considered in the simulations. Note that here you can linearly combine two scoring plugins -- _in our experimental evaluation, we combined our PWR plugin with the FGD one_.
 
 
 ### 2. Execute the simulations
