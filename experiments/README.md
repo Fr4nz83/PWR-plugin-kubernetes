@@ -8,10 +8,10 @@ Once these two operations are done, you are ready to prepare and execute the exp
 
 ## 1. Generation of the scripts that execute the simulations
 
-The first step requires to generate the bash script in charge of executing a batch of simulations. The Python script `generate_run_scripts.py` is in charge of doing so, and is located in the `experiments/run_scripts` path. For example, you can do so by executing the lines below from the command line:
+The first step requires to generate the bash script in charge of executing a batch of simulations. The Python script `generate_run_scripts.py` is in charge of doing so, and is located in the `experiments/run_scripts` path. For example, assuming that this repository is located in the `PWR-plugin-kubernetes` folder in your machine, you can generate the bash script by executing the lines below from the command line:
 
 ```bash
-# pwd: kubernetes-scheduler-simulator/experiments
+# pwd: PWR-plugin-kubernetes/experiments
 $ python run_scripts/generate_run_scripts.py > run_scripts/run_scripts_0511.sh
 ```
 
@@ -31,7 +31,7 @@ Assuming that `run_scripts_0511.sh` is the name of the bash script generated at 
 For example:
 
 ```bash
-# pwd: kubernetes-scheduler-simulator
+# pwd: PWR-plugin-kubernetes
 $ ./experiments/run_scripts/run_scripts_0511.sh
 ```
 
