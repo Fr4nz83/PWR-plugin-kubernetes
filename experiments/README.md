@@ -6,7 +6,7 @@ Secondly, make sure that the traces have been translated from CSV to YAMLs -- to
 Once these two operations are done, you are ready to prepare and execute the experimental evaluation pipeline used in our paper.
 
 
-### 1. Generation of the scripts that execute the simulations
+## 1. Generation of the scripts that execute the simulations
 
 The first step requires to generate the bash script in charge of executing a batch of simulations. The Python script `generate_run_scripts.py` is in charge of doing so, and is located in the `experiments/run_scripts` path. For example, you can do so by executing the lines below from the command line:
 
@@ -25,34 +25,31 @@ The Python script has been documented, hence this customization can be easily do
 - **AllMethodList**: the list of scoring plugins considered in the simulations. Note that here you can linearly combine two scoring plugins -- _in our experimental evaluation, we combined our PWR plugin with the FGD one_.
 
 
-### 2. Execute the simulations
+## 2. Execute the simulations
 
-`run_scripts_0511.sh` includes multiple executable commands that are executed sequentially by default.
-You can adjust the `--max-procs` parameter in the following command to modify the number of parallel threads based on the CPU resources available on your machine.
-It is recommended to configure the parallel thread pool size to **half the number of virtual CPUs available** (i.e., `# of vCPU / 2`).
+Assuming that `run_scripts_0511.sh` is the name of the bash script generated at step 1, you can now execute the batch of simulations represented by the script from the root of the project.
+For example:
 
 ```bash
-# pwd: kubernetes-scheduler-simulator/experiments
-$ cd ..
 # pwd: kubernetes-scheduler-simulator
-$ cat experiments/run_scripts/run_scripts_0511.sh | while read i; do printf "%q" "$i"; done | xargs --max-procs=16 -I CMD bash -c CMD
-# "--max-procs=16" where 16 is the degree of PARALLEL suggested above
-# bash run_scripts_0511.sh will run experiments sequentially
+$ ./experiments/run_scripts/run_scripts_0511.sh
 ```
 
-From the original repository's description => to explain the bash script generated (e.g., `run_scripts_0511.sh`):
-- Each experiment is conducted via the Python script [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py). The script conducts an experiment by executing the following three steps:
-    - First, the script generates two configuration yaml files in that folder, which are served as input to `bin/simon apply` (i.e., cluster-config and scheduler-config, see "Quickstart Example" in repo [README](../README.md)), 
+(From the original repository's description): each simulation executed by the bash script is, in reality, made of two steps:
+- First, the bash script invokes the Python script [scripts/generate_config_and_run.py](../scripts/generate_config_and_run.py). This conducts an experiment by executing the following three sub-steps:
+    - First, the script prepares two configuration YAML files for the simulator in a simulation's subfolder, which are served as input to `bin/simon apply` (i.e., cluster-config and scheduler-config, see "Quickstart Example" in repo [README](../README.md)); 
     - Then, it executes the `bin/simon apply` command (confirmed by passing the `-e` parameter to the script)
-    - The simulator's executable, i.e., `bin/simon`, will schedule the tasks and produce a scheduling log file in the corresponding folder.
-- Afterwards, [scripts/analysis.py](../scripts/analysis.py) is executed to parse logs and yields multiple `analysis_*` files in the folder.
+    - The simulator's executable, i.e., `bin/simon`, will schedule the tasks and produce a scheduling log file in the corresponding simulation's subfolder.
+- Afterwards, the bash script executes [scripts/analysis.py](../scripts/analysis.py), which parses logs and yields multiple `analysis_*` files in the smulation's subfolder.
 
-Please, be aware that executing many simulation in parallel takes a lot of computational and memory resources and, depending on the available resources, can take a lot of time. From the original repository, the authors report that it takes around:
+Once again, please be aware that **executing many simulation in parallel takes a lot of computational, memory, and storage resources**. Furthermore, depending on the resources you have and the number of simulations that you can run in parallel, running many simulations in **can take a lot of time**. 
+
+As a reference, in the original repository the authors of "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" report that it takes around:
 - 10 minutes for 1 experiment on 2 vCPU, 9.4MB disk space for logs.
 - 10 hours for 1020 experiments on a 256 vCPU machine with pool size of 128 threads, 9.4GB disk space for logs
 
 
-### 3. Analysis of the simulations' results
+### 3. Analysis of the results
 
 As each experiment has its own folder where the `analysis_*` files are produced, here we bypass all folders and merge all the analysis files of the same category into one file under the `analysis/analysis_results` folder.
 
