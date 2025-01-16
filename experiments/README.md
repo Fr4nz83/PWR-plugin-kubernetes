@@ -55,11 +55,12 @@ Once again, please be aware that **executing many simulation in parallel takes a
 
 ## 2. Analysis of the simulations' results (part of the text adapted from the original repository)
 
-The folder in which the results of the simulations will be stored will be located in `experiments`. Recall from the [generation of scripts](#11-generation-of-the-scripts-that-execute-the-simulations) Section that the folder's name depends on the DATE variable -- e.g., if `DATE=2023_0511`, then this will be the name used for the results' folder. In this folder, you will find the results of the simulations. Here, each simulation has its own subfolder, where you will find several files with the simulation results. **The files you will be mainly interested into are the `analysis_*` ones**. 
+The folder in which the results of the simulations will be stored will be located in `experiments`. Recall from the [generation of scripts](#11-generation-of-the-scripts-that-execute-the-simulations) Section that the folder's name depends on the DATE variable -- e.g., if `DATE=2023_0511`, then this will be the name used for the results' folder. In it, each simulation has its own subfolder, where you will find several files with the simulation results. **The files you will be mainly interested into are the `analysis_*` ones** (see more below). 
 
-Assume that we are evaluating 6 scheduling policies, and that we are evaluating each policy on 17 different traces, each with its own workload's distributions. Furthermore, asume that for each policy-trace combination, we repeat the simulation 10 times to ensure results' reliability. Thus, in this example we will have a total number of `6 x 17 x 10 = 1020` simulations to conduct. The results of these 1020 simulations will have the following structure:
+For example: assume that we are evaluating 6 scheduling policies, and that we are evaluating each policy on 17 different traces, each with its own workload's distributions. Furthermore, assume that for each policy-trace combination, we repeat the simulation 10 times to ensure consistent results. Thus, in this example we will have a total number of `6 x 17 x 10 = 1020` simulations to run. Assuming that the results are stored in the `2023_0511` folder, the results of the 1020 simulations will have the following structure:
 
 ```bash
+├2023_0511
 ├── 01-Random
 │   ├── dataset_01_default
 │   │   ├── random_seed_42
@@ -91,8 +92,16 @@ Assume that we are evaluating 6 scheduling policies, and that we are evaluating 
     │   ├── random_seed_..
 ```
 
-As mentioned before, within each simulation's subfolder you will find several files. The interesting ones are some of the `analysis_*` files, each focusing on a specific metric considered during the simulation. More precisely, **in our experimental evaluation we consider**:
+As mentioned before, within each simulation's subfolder you will find several files. The interesting ones for the purposes of our work are some of the `analysis_*` files, each focusing on a specific metric considered during the simulation. More precisely, **in our experimental evaluation we consider**:
 
 - `analysis_allo.csv`: contains information regarding the resources requested and allocated onto the GPU datacenter as the simulation progresses.
 - `analysis_frag.csv`: contains information regarding GPU fragmentation as the simulation progresses.
 - `analysis_pwr.csv`: contains information regarding the esitmated CPU and GPU power consumption within the simulated GPU datacenter as the simulation progresses.
+- `analysis_grep.out`: some general statistics concerning a simulation.
+
+  How to extract information and results from these files is done via a set of three Jupyter notebooks, and is detailed next.
+
+  
+### 2.1. Parsing and piecing toghether the results 
+
+### 2.2. Plotting the results
