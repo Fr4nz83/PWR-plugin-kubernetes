@@ -16,7 +16,7 @@ python3 scripts/generate_config_and_run.py \
 - `-e`: set to execute the command (if not set, the script will print the generated command to stdout rather than executing it. c.f. L#381)
 - `-b`: blocking execution forces the python scripts to wait until the /bin/simon finishes
 - `-f`: path to YAML file containing origin cluster node and pod list
-- `-FGD 1000`: set the score weight of policy FGD to 1000. Other alternatives include "Random", "DotProd", "GpuClustering", "GpuPacking", "BestFit". Although Kubernetes supports multiple scheduling policies to score together, each having its own score weights, here we evaluate the policy on their own.
+- `-FGD 1000`: set the score weight of policy FGD to 1000. Other alternatives include "PWR", "Random", "DotProd", "GpuClustering", "GpuPacking", "BestFit".
   - `-gpusel FGD`: parameter in scheduling policy: GPU selection method
   - `-dimext share`: parameter in scheduling policy: dimension extension method
   - `-norm max`: parameter in scheduling policy: normalization method
