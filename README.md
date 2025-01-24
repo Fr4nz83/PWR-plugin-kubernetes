@@ -27,7 +27,7 @@ $ go mod vendor
 $ make
 ```
 
-## How to reproduce our experimental evaluation's results
+## How to reproduce our experimental evaluation's pipeline and results
 
 The Python dependencies required to run the Python scripts behind our experimental evaluation are listed in the file `requirements.txt`. They can be installed by executing:
 
