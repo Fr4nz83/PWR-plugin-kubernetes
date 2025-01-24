@@ -7,8 +7,8 @@ This repository started as a fork of the repository behind the seminal paper "[B
 More precisely, in this repository you will find:
 
 - our power-aware online scheduling policy, **PWR**, in the form of a Kubernetes scoring plugin. The core of the PWR plugin can be found in the Go source file [`pwr_score.go`](pkg/simulator/plugin/pwr_score.go);
-- the power consumption telemetry feature to the Alibaba's open-simulator (this required to modify some of the simulator's source files);
-- provide the Python and Bash scripts used for the paper's experimental evaluation, in order to ensure reproducibility.
+- the power consumption telemetry feature added to Alibaba's open-simulator (this required to modify some of the simulator's source files);
+- Python and Bash scripts used for the paper's experimental evaluation, to ensure reproducibility.
 
 
 ## How to compile the code
