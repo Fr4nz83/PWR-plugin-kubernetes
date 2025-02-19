@@ -60,4 +60,4 @@ Lettich, F., Carlini, E., Nardini, F. M., Perego, R., & Trani, S. (2024). *Power
 }
 ```
 
-The article has been accepted to the **IEEE International Symposium on Cluster, Cloud, and Internet Computing (CCGrid 2025)** conference. Stay tuned for future updates!
+The article has been accepted to the **25th IEEE International Symposium on Cluster, Cloud, and Internet Computing (CCGrid 2025)** conference. Stay tuned for future updates!
