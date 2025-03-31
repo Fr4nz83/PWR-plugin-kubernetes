@@ -11,6 +11,7 @@ const (
 	BestFitScorePluginName       = "BestFitScore"
 	FGDScorePluginName           = "FGDScore"
 	PWRScorePluginName           = "PWRScore"
+	PWREXPScorePluginName        = "PWREXPScore"
 
 	NewNodeNamePrefix    = "simon"
 	DefaultSchedulerName = "simon-scheduler"

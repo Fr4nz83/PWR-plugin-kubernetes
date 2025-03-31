@@ -506,7 +506,6 @@ github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kubernetes-csi/csi-lib-utils v0.9.1/go.mod h1:8E2jVUX9j3QgspwHXa6LwyN7IHQDjW9jX3kwoWnSC+M=
 github.com/kubernetes-csi/drivers v1.0.2/go.mod h1:V6rHbbSLCZGaQoIZ8MkyDtoXtcKXZM0F7N3bkloDCOY=
-github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0 h1:OYDCOjVcx/5wNzlZ/At8otRibUlw0T6R0xOD31f32bw=
 github.com/kubernetes-csi/external-snapshotter/client/v3 v3.0.0/go.mod h1:Q7VUue/CIrKbtpBdF04a1yjGGgsMaDws1HUxtjzgnEY=
 github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/lann/builder v0.0.0-20180802200727-47ae307949d0/go.mod h1:dXGbAdH5GtBTC4WfIxhKZfyBF/HBFgRZSWwZ9g/He9o=
