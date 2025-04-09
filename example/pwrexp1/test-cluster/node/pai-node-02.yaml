@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Node
+metadata:
+  labels:
+    beta.kubernetes.io/arch: amd64
+    beta.kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+    kubernetes.io/hostname: pai-node-02
+    kubernetes.io/os: linux
+    node-role.kubernetes.io/master: ''
+    alibabacloud.com/cpu-model: Intel-Xeon-ES-2682-V4 # Specifies the CPU model present in the node.
+    node-ip: 192.168.0.100
+  name: pai-node-02
+status:
+  allocatable:
+    cpu: 64
+    memory: 256000Mi
+    pods: '110'
+  capacity:
+    cpu: 64
+    memory: 256000Mi
+    pods: '110'
