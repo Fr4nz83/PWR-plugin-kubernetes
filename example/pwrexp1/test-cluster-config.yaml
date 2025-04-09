@@ -4,11 +4,11 @@ metadata:
   name: simon-paib-config	# This is the name of the configuration object. Metadata provides additional data about the object, such as its name.
 spec:				# Specifications of the cluster
   cluster:
-    customConfig: example/new2/test-cluster	# This specifies the where the cluster configuration is. The path is relative to the root of the project.
+    customConfig: example/pwrexp1/test-cluster	# This specifies the where the cluster configuration is. The path is relative to the root of the project.
   customConfig:
     shufflePod: false
     workloadTuningConfig:
-      ratio: 0.9
+      ratio: 2.9
       seed: 233
     typicalPodsConfig:
       isInvolvedCpuPods: true

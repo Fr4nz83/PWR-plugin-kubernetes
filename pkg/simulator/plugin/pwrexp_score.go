@@ -9,12 +9,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	resourcehelper "k8s.io/kubectl/pkg/util/resource"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 
 	simontype "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type"
 	gpushareutils "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/type/open-gpu-share/utils"
-	"github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
+	utils "github.com/hkust-adsl/kubernetes-scheduler-simulator/pkg/utils"
 )
 
 type PWREXPScorePlugin struct {
@@ -31,7 +30,7 @@ var _ framework.ScorePlugin = &PWREXPScorePlugin{} // This assignment is used at
 // NOTE: typical pods should represent the target workload, i.e., pods passed via YAMLs before workload inflation.
 // These are required to compute the cluster fragmentation.
 func NewPWREXPScorePlugin(_ runtime.Object, handle framework.Handle, typicalPods *simontype.TargetPodList) (framework.Plugin, error) {
-	log.Infof("DEBUG FRA, plugin.pwrexp_score.NewPWREXPScorePlugin() => Instantiating PWR plugin!\n")
+	log.Infof("DEBUG FRA, plugin.pwrexp_score.NewPWREXPScorePlugin() => Instantiating PWREXP plugin!\n")
 
 	plugin := &PWREXPScorePlugin{
 		handle:      handle,
@@ -63,23 +62,25 @@ func (plugin *PWREXPScorePlugin) Score(ctx context.Context, state *framework.Cyc
 	// "PodRequestsAndLimits()" returns a dictionary of all defined resources summed up for all containers of the pod.
 	// If pod overhead is non-nil, the pod overhead is added to the total container resource requests and to the
 	// total container limits which have a non-zero quantity.
-	if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => the pod does not request any resource!\n")
-		return framework.MaxNodeScore, framework.NewStatus(framework.Success)
-	}
+	// NOTE: we deactivated this check, and handle the associated case by the generic code below.
+	// if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
+	// 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => the pod does not request any resource!\n")
+	//	return framework.MaxNodeScore, framework.NewStatus(framework.Success)
+	// }
 
 	// Step 2 - Retrieves the resources of the node specified by nodeName.
 	nodeResPtr := utils.GetNodeResourceViaHandleAndName(plugin.handle, nodeName)
 	// Check if "GetNodeResourceViaHandleAndName" failed to retrieve the node's resources, possibly due to the node not being found or some other error.
 	// In this case, we return the minimum node score and an error status.
+	// NOTE: in a simulation, we should never enter in this case.
 	if nodeResPtr == nil {
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("failed to get nodeRes(%s)\n", nodeName))
 	}
 	nodeRes := *nodeResPtr
 
 	// Step 3 - Retrieve the resources requested by the pod, and check if the currently considered node is suitable for the pod, i.e.,
-	// the node has enough resources to accomodate
-	// the pod, and the GPU type requested by the pod is present on the node.
+	// the node has enough resources to accomodate the pod, and the GPU type requested by the pod is present on the node.
+	// NOTE: in theory we should never enter this if block, as the Filter plugin removes the nodes that fall in this case.
 	podRes := utils.GetPodResource(p)
 	if !utils.IsNodeAccessibleToPod(nodeRes, podRes) {
 		return framework.MinNodeScore, framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
@@ -92,7 +93,8 @@ func (plugin *PWREXPScorePlugin) Score(ctx context.Context, state *framework.Cyc
 	// Step 4 - compute the score of a node w.r.t. the considered pod.
 	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
 	//		    schedule the pod on it -- the more the increase, the worst the score.
-	score, _ := calculatePWREXPShareExtendScore(nodeRes, podRes, plugin.typicalPods)
+	// score, _ := calculatePWREXPShareExtendScore(nodeRes, podRes, plugin.typicalPods)
+	var score int64 = 0
 	return score, framework.NewStatus(framework.Success)
 }
 
@@ -140,8 +142,9 @@ func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework
 
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
 // and then measure how much the node's power consumption increases.
-// TODO: use the typicalPods variable to compute the expected increase in power consumption when hypotetically allocating on a pod.
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
+
+	// TODO: use the typicalPods variable to compute the expected increase in power consumption onto this node.
 	// Compute the node's current power consumption.
 	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
 	old_node_energy := old_CPU_energy + old_GPU_energy
@@ -223,4 +226,22 @@ func allocateGpuIdBasedOnPWREXPScore(nodeRes simontype.NodeResource, podRes simo
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.allocateGpuIdBasedOnPWREXPScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
 	_, gpuId = calculatePWREXPShareExtendScore(nodeRes, podRes, typicalPods)
 	return gpuId
+}
+
+// This function computes the expected power increase onto a node when considering the pods of a typical workload represented by 'typicalPods'.
+func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (pwrExpIncrease float32) {
+
+	// Consider the pods in the target workload.
+	for _, pod := range *typicalPods {
+		// Check if the current pod in the target workload has a probability that makes sense. If not, ignore the pod in
+		// the target workload (shouldn't happen!).
+		freq := pod.Percentage
+		if freq < 0 || freq > 1 {
+			log.Errorf("pod %v has bad freq: %f\n", pod.TargetPodResource, freq)
+			continue
+		}
+
+		// TODO: to be continued...
+	}
+	return pwrExpIncrease
 }
