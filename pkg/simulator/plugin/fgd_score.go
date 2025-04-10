@@ -97,7 +97,7 @@ func (plugin *FGDScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
 // and then measure how much the node's fragmentation changes w.r.t. the target workload.newNodeGpuShareFragScore
 func calculateGpuShareFragExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
-	// Compute the node's current fragmentation.
+	// Compute the node's current expected GPU fragmentation.
 	nodeGpuShareFragScore := utils.NodeGpuShareFragAmountScore(nodeRes, *typicalPods)
 
 	// Case 1 - the pod requests a fraction of the resources of a single GPU.
