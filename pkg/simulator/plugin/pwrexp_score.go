@@ -217,13 +217,21 @@ func allocateGpuIdBasedOnPWREXPScore(nodeRes simontype.NodeResource, podRes simo
 
 // This function computes the expected power increase onto a node when considering the pods of a typical workload represented by 'typicalPods'.
 // TODO: this function needs to be tested.
-func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (pwrExpIncrease float32) {
+func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (expPwrIncrease float64) {
 
-	// Estimate the power consumption of the node before hypotetically allocating the various typical pods.
-	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
-	old_node_energy := old_CPU_energy + old_GPU_energy
+	// Local type.
+	type Pair struct {
+		pwr_inc float64
+		prob    float64
+	}
 
-	// Consider the pods in the target workload.
+	// Compute the estimated power consumption of the node before hypotetically scheduling the various typical pods on it.
+	old_CPU_power, old_GPU_power := nodeRes.GetEnergyConsumptionNode()
+	old_node_power := old_CPU_power + old_GPU_power
+
+	// Scan the pods in the target workload, and save the increase in power consumption they'd entail.
+	var skipped bool = false
+	var list_allocatable_pods []Pair
 	for _, pod := range *typicalPods {
 		// Check if the current pod in the target workload has a probability that makes sense. If not, ignore the pod in
 		// the target workload (shouldn't happen!).
@@ -234,65 +242,80 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		}
 
 		podRes := pod.TargetPodResource // Retrieve the resources requested by this typical pod.
-		podFreq = pod.Percentage        // Retrieve this typical pod's popularity.
+		podFreq := pod.Percentage       // Retrieve this typical pod's popularity.
+
+		// Check if the node can host this typical pod...if not, skip to the next one.
+		if !isPodAllocatableToNode(nodeRes, podRes) {
+			skipped = true
+			continue
+		}
+
+		// Variable used to store the increase in power consumption of the node if the pod is hypotetically scheduled on it.
+		new_node_power := math.MaxFloat64
 
 		// Case 1 - the typical pod requests a fraction of the resources of a single GPU.
 		if podRes.GpuNumber == 1 && podRes.MilliGpu < gpushareutils.MILLI {
-			POD
-			// For each GPU in the node, check how the node power consumption would change by hypotetically assigning the considered pod to it.
-			// NOTE: for now, we are assuming that a GPU consumes max power even if it is minimally used.
-			score, gpuId = math.MinInt64, ""
-			// minMilliLeft := int64(gpushareutils.MILLI)
+			// For each GPU in the node, compute the node's estimated power consumption would by hypotetically assigning the considered pod onto that GPU.
+			var best_gpu_idx int = -1
 			for i := 0; i < len(nodeRes.MilliGpuLeftList); i++ {
 
 				// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
 				if nodeRes.MilliGpuLeftList[i] >= podRes.MilliGpu {
 					// Simulate how the available resources on a node would change by scheduling the pod onto a specific node's GPU.
-					newNodeRes := nodeRes.Copy()
-					newNodeRes.MilliCpuLeft -= podRes.MilliCpu
-					newNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
+					tmpNodeRes := nodeRes.Copy()
+					tmpNodeRes.MilliCpuLeft -= podRes.MilliCpu
+					tmpNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
 
 					// Now compute the increase in power consumption if allocating the current typical pod on this GPU.
-					hyp_exp_pwr_inc := CalcExpPWRIncNode(newNodeRes, typicalPods)
-					pwrScore := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
-					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n",
-						nodeRes.NodeName, i, pwrScore)
+					tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
+					tmp_node_power := tmp_CPU_power + tmp_GPU_power
+					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", tmpNodeRes.NodeName, i, tmp_node_power)
 
 					// ### Update the node's best score ### //
-					// Case 1 - this is the first GPU within the node that can accomodate the pod.
-					if gpuId == "" {
-						score = pwrScore
-						gpuId = strconv.Itoa(i)
-					} else {
-						// Case 2 - we have found a better GPU than the previous one, i.e., by allocating the pod on this GPU,
-						//          we consume less energy than the previously found solution.
-						if pwrScore > score {
-							score = pwrScore
-							gpuId = strconv.Itoa(i)
-						}
+					if tmp_node_power < new_node_power {
+						best_gpu_idx = i
+						new_node_power = tmp_node_power
 					}
 				}
-			}
 
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final score for node %s: selected GPU %s, score %d\n",
-				nodeRes.NodeName, gpuId, score)
-			return score, gpuId
+			}
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power increase for node %s: selected GPU %s, score %d\n", nodeRes.NodeName, best_gpu_idx, new_node_power)
 
 			// Case 2 - the pod requests no GPU (CPU only), or exactly one GPU, or multiple GPUs.
 		} else {
 			// Subtract the node's resources that would be taken by the pod if scheduled on it.
-			newNodeRes, _ := nodeRes.Sub(podRes)
+			tmpNodeRes, _ := nodeRes.Sub(podRes)
 
-			// Compute the expected increase in power consumption with the pod hypotetically allocated onto the node.
-			hyp_exp_pwr_inc := CalcExpPWRIncNode(newNodeRes, typicalPods)
-			pwrScore := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
+			// Compute the estimated power consumption of the node with the typical pod hypotetically allocated on it.
+			tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
+			new_node_power = tmp_CPU_power + tmp_GPU_power
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
-				nodeRes.NodeName, pwrScore)
+				nodeRes.NodeName, new_node_power)
+		}
 
-			return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
+		// Save information about the increase in power consumption with this typical pod.
+		list_allocatable_pods = append(list_allocatable_pods, Pair{new_node_power, podFreq})
+	}
+
+	// If necessary, renormalize the probabilities of the typical pods that can be allocated onto this node.
+	if skipped {
+		sum_probs := 0.
+		for _, pod_info := range list_allocatable_pods {
+			sum_probs += pod_info.prob
+		}
+		for _, pod_info := range list_allocatable_pods {
+			pod_info.prob /= sum_probs
 		}
 	}
-	return pwrExpIncrease
+
+	// Finally, compute the expected power increase.
+	expPwrIncrease = 0.
+	for _, pod_info := range list_allocatable_pods {
+		// Compute the increase in power consumption of the node if the pod is hypotetically scheduled on it.
+		expPwrIncrease += (pod_info.pwr_inc - old_node_power) * pod_info.prob
+	}
+
+	return expPwrIncrease
 }
 
 // This function checks wheter a given node can host a given pod.
