@@ -269,7 +269,8 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 					// Now compute the increase in power consumption if allocating the current typical pod on this GPU.
 					tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
 					tmp_node_power := tmp_CPU_power + tmp_GPU_power
-					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n", tmpNodeRes.NodeName, i, tmp_node_power)
+					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Estimating pwr consumption node %s, GPU %d, with sharing-GPU pod: %f\n",
+						tmpNodeRes.NodeName, i, tmp_node_power)
 
 					// ### Update the node's best score ### //
 					if tmp_node_power < new_node_power {
@@ -279,7 +280,8 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 				}
 
 			}
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power increase for node %s: selected GPU %s, score %d\n", nodeRes.NodeName, best_gpu_idx, new_node_power)
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power consumption for node %s: selected GPU %d, power %f\n",
+				nodeRes.NodeName, best_gpu_idx, new_node_power)
 
 			// Case 2 - the pod requests no GPU (CPU only), or exactly one GPU, or multiple GPUs.
 		} else {
@@ -289,7 +291,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 			// Compute the estimated power consumption of the node with the typical pod hypotetically allocated on it.
 			tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
 			new_node_power = tmp_CPU_power + tmp_GPU_power
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Power consumption of node %s with CPU-only or multi-GPU pod: %f\n",
 				nodeRes.NodeName, new_node_power)
 		}
 
