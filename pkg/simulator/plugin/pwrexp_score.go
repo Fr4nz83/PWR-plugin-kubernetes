@@ -142,6 +142,14 @@ func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework
 	return framework.NewStatus(framework.Success)
 }
 
+// This function checks wheter a given node can host a given pod.
+func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.PodResource) bool {
+
+	return !((nodeRes.MilliCpuLeft < podRes.MilliCpu) || // Check if the node has enough CPU resources for the POD.
+		!utils.IsNodeAccessibleToPod(nodeRes, podRes) || // Check if the node has the GPU type requested by the pod (if that's the case).
+		!utils.CanNodeHostPodOnGpuMemory(nodeRes, podRes)) // Check if the node has enough GPU resources for the pod.
+}
+
 // This function computes the score of a node w.r.t. an unscheduled pod. This is done by hypotetically scheduling the pod on the node,
 // and then measure how much the node's power consumption increases.
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
@@ -150,14 +158,13 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	// To this end, use the typical pods.
 	curr_exp_pwr_inc := CalcExpPWRIncNode(nodeRes, typicalPods)
 
-	// Case 1 - the pod requests a fraction of the resources of a single GPU.
-	if podRes.GpuNumber == 1 && podRes.MilliGpu < gpushareutils.MILLI {
+	// Case 1 - the pod is GPU-share, i.e., it requests a fraction of the resources of a single GPU.
+	if podRes.IsGpuShare() {
 
 		// For each GPU in the node, check how the node power consumption would change by hypotetically assigning the considered pod to it.
 		// NOTE: for now, we are assuming that a GPU consumes max power even if it is minimally used.
 		score, gpuId = math.MinInt64, ""
-		// minMilliLeft := int64(gpushareutils.MILLI)
-		for i := 0; i < len(nodeRes.MilliGpuLeftList); i++ {
+		for i := range nodeRes.MilliGpuLeftList {
 
 			// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
 			if nodeRes.MilliGpuLeftList[i] >= podRes.MilliGpu {
@@ -207,14 +214,6 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	}
 }
 
-// This function selects the best GPU(s) found in a given node. It essentially re-executes the allocateGpuIdBasedOnPWREXPScore function
-// executed within Score(), but it considers only the best GPU(s) for a pod found in a node and ignores the computed score.
-func allocateGpuIdBasedOnPWREXPScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
-	log.Debugf("DEBUG FRA, plugin.pwrexp_score.allocateGpuIdBasedOnPWREXPScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
-	_, gpuId = calculatePWREXPShareExtendScore(nodeRes, podRes, typicalPods)
-	return gpuId
-}
-
 // This function computes the expected power increase onto a node when considering the pods of a typical workload represented by 'typicalPods'.
 // TODO: this function needs to be tested.
 func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (expPwrIncrease float64) {
@@ -246,8 +245,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		}
 
 		// Check if the node can host this typical pod; if not, skip to the next one.
-		if utils.IsNodeAccessibleToPod(nodeRes, podRes) {
-			// if !isPodAllocatableToNode(nodeRes, podRes) {
+		if !isPodAllocatableToNode(nodeRes, podRes) {
 			skipped = true
 			continue
 		}
@@ -311,8 +309,8 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 	// Step 3 - If some typical pods cannot be allocated on this node, renormalize the probabilities of the ones that can be.
 	if skipped {
 		sum_probs := 0.
-		for i := range list_allocatable_pods {
-			sum_probs += list_allocatable_pods[i].prob
+		for _, pod_info := range list_allocatable_pods {
+			sum_probs += pod_info.prob
 		}
 		for i := range list_allocatable_pods {
 			list_allocatable_pods[i].prob /= sum_probs
@@ -321,18 +319,18 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 
 	// Step 4 - Compute the expected power increase.
 	expPwrIncrease = 0.
-	for _, pod_info := range list_allocatable_pods {
+	for i := range list_allocatable_pods {
 		// Compute the increase in power consumption of the node if the pod is hypotetically scheduled on it.
-		expPwrIncrease += (pod_info.pwr_inc - old_node_power) * pod_info.prob
+		expPwrIncrease += (list_allocatable_pods[i].pwr_inc - old_node_power) * list_allocatable_pods[i].prob
 	}
 
 	return expPwrIncrease
 }
 
-// This function checks wheter a given node can host a given pod.
-func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.PodResource) bool {
-
-	return !((nodeRes.MilliCpuLeft < podRes.MilliCpu) || // Check if the node has enough CPU resources for the POD.
-		!utils.IsNodeAccessibleToPod(nodeRes, podRes) || // Check if the node has the GPU type requested by the pod (if that's the case).
-		!utils.CanNodeHostPodOnGpuMemory(nodeRes, podRes)) // Check if the node has enough GPU resources for the pod.
+// This function selects the best GPU(s) found in a given node. It essentially re-executes the allocateGpuIdBasedOnPWREXPScore function
+// executed within Score(), but it considers only the best GPU(s) for a pod found in a node and ignores the computed score.
+func allocateGpuIdBasedOnPWREXPScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
+	log.Debugf("DEBUG FRA, plugin.pwrexp_score.allocateGpuIdBasedOnPWREXPScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
+	_, gpuId = calculatePWREXPShareExtendScore(nodeRes, podRes, typicalPods)
+	return gpuId
 }
