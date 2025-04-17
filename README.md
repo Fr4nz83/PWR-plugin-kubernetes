@@ -44,20 +44,4 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 ## Cite us
 
-If you used or appreciated our contributions, please cite the following paper:
-
-Lettich, F., Carlini, E., Nardini, F. M., Perego, R., & Trani, S. (2024). *Power-and Fragmentation-aware Online Scheduling for GPU Datacenters*. arXiv preprint arXiv:2412.17484.
-
-```
-@misc{lettich2024powerfragmentationawareonlinescheduling,
-      title={Power- and Fragmentation-aware Online Scheduling for GPU Datacenters}, 
-      author={Francesco Lettich and Emanuele Carlini and Franco Maria Nardini and Raffaele Perego and Salvatore Trani},
-      year={2024},
-      eprint={2412.17484},
-      archivePrefix={arXiv},
-      primaryClass={cs.DC},
-      url={https://arxiv.org/abs/2412.17484}, 
-}
-```
-
 The article has been accepted to the **25th IEEE International Symposium on Cluster, Cloud, and Internet Computing (CCGrid 2025)** conference. Stay tuned for future updates!
