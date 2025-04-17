@@ -225,27 +225,29 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		prob    float64
 	}
 
-	// Compute the estimated power consumption of the node before hypotetically scheduling the various typical pods on it.
+	// Step 1 - Compute the estimated power consumption of the node before hypotetically scheduling the various typical pods on it.
 	old_CPU_power, old_GPU_power := nodeRes.GetEnergyConsumptionNode()
 	old_node_power := old_CPU_power + old_GPU_power
 
-	// Scan the pods in the target workload, and save the increase in power consumption they'd entail.
-	var skipped bool = false
+	// Step 2 - Scan the pods in the target workload, and save the increase in power consumption they would entail.
+	skipped := false
 	var list_allocatable_pods []Pair
 	for _, pod := range *typicalPods {
-		// Check if the current pod in the target workload has a probability that makes sense. If not, ignore the pod in
-		// the target workload (shouldn't happen!).
-		freq := pod.Percentage
-		if freq < 0 || freq > 1 {
-			log.Errorf("pod %v has bad freq: %f\n", pod.TargetPodResource, freq)
+
+		podFreq := pod.Percentage       // Retrieve this typical pod's popularity, i.e., the probability that a pod with this resource profile occurs.
+		podRes := pod.TargetPodResource // Retrieve the resources requested by this typical pod.
+
+		// Check if the considered typical pod in the target workload has a probability that makes sense.
+		// If not (shouldn't happen!), ignore the pod.
+		if podFreq < 0 || podFreq > 1 {
+			log.Errorf("pod %v has bad freq: %f\n", pod.TargetPodResource, podFreq)
+			skipped = true
 			continue
 		}
 
-		podRes := pod.TargetPodResource // Retrieve the resources requested by this typical pod.
-		podFreq := pod.Percentage       // Retrieve this typical pod's popularity.
-
-		// Check if the node can host this typical pod...if not, skip to the next one.
-		if !isPodAllocatableToNode(nodeRes, podRes) {
+		// Check if the node can host this typical pod; if not, skip to the next one.
+		if utils.IsNodeAccessibleToPod(nodeRes, podRes) {
+			// if !isPodAllocatableToNode(nodeRes, podRes) {
 			skipped = true
 			continue
 		}
@@ -254,10 +256,11 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		new_node_power := math.MaxFloat64
 
 		// Case 1 - the typical pod requests a fraction of the resources of a single GPU.
-		if podRes.GpuNumber == 1 && podRes.MilliGpu < gpushareutils.MILLI {
-			// For each GPU in the node, compute the node's estimated power consumption would by hypotetically assigning the considered pod onto that GPU.
+		if podRes.IsGpuShare() {
+			// For each GPU in the node, compute the node's estimated power consumption we would have by hypotetically assigning
+			// the considered pod onto that GPU.
 			var best_gpu_idx int = -1
-			for i := 0; i < len(nodeRes.MilliGpuLeftList); i++ {
+			for i := range nodeRes.MilliGpuLeftList {
 
 				// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
 				if nodeRes.MilliGpuLeftList[i] >= podRes.MilliGpu {
@@ -280,8 +283,14 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 				}
 
 			}
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power consumption for node %s: selected GPU %d, power %f\n",
-				nodeRes.NodeName, best_gpu_idx, new_node_power)
+
+			// Sanity check to see if we found a GPU that can accomodate the pod (shouldn't give error!).
+			if best_gpu_idx >= 0 {
+				log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power consumption for node %s: selected GPU %d, power %f\n",
+					nodeRes.NodeName, best_gpu_idx, new_node_power)
+			} else {
+				log.Errorf("pod %v couldn't be allocated on node %s even if it had resources!\n", pod.TargetPodResource, nodeRes.NodeName)
+			}
 
 			// Case 2 - the pod requests no GPU (CPU only), or exactly one GPU, or multiple GPUs.
 		} else {
@@ -296,21 +305,21 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		}
 
 		// Save information about the increase in power consumption with this typical pod.
-		list_allocatable_pods = append(list_allocatable_pods, Pair{new_node_power, podFreq})
+		list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_inc: new_node_power, prob: podFreq})
 	}
 
-	// If necessary, renormalize the probabilities of the typical pods that can be allocated onto this node.
+	// Step 3 - If some typical pods cannot be allocated on this node, renormalize the probabilities of the ones that can be.
 	if skipped {
 		sum_probs := 0.
-		for _, pod_info := range list_allocatable_pods {
-			sum_probs += pod_info.prob
+		for i := range list_allocatable_pods {
+			sum_probs += list_allocatable_pods[i].prob
 		}
-		for _, pod_info := range list_allocatable_pods {
-			pod_info.prob /= sum_probs
+		for i := range list_allocatable_pods {
+			list_allocatable_pods[i].prob /= sum_probs
 		}
 	}
 
-	// Finally, compute the expected power increase.
+	// Step 4 - Compute the expected power increase.
 	expPwrIncrease = 0.
 	for _, pod_info := range list_allocatable_pods {
 		// Compute the increase in power consumption of the node if the pod is hypotetically scheduled on it.
@@ -324,6 +333,6 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.PodResource) bool {
 
 	return !((nodeRes.MilliCpuLeft < podRes.MilliCpu) || // Check if the node has enough CPU resources for the POD.
-		(utils.IsNodeAccessibleToPod(nodeRes, podRes) == false) || // Check if the node has the GPU type requested by the pod (if that's the case).
-		(utils.CanNodeHostPodOnGpuMemory(nodeRes, podRes) == false)) // Check if the node has enough GPU resources for the pod.
+		!utils.IsNodeAccessibleToPod(nodeRes, podRes) || // Check if the node has the GPU type requested by the pod (if that's the case).
+		!utils.CanNodeHostPodOnGpuMemory(nodeRes, podRes)) // Check if the node has enough GPU resources for the pod.
 }
