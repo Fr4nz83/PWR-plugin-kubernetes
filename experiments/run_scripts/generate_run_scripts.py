@@ -14,36 +14,38 @@ FILELIST = [
 #    "data/openb_pod_list_cpu200",
 #    "data/openb_pod_list_cpu250",
     # GPU-sharing traces
-    "data/openb_pod_list_gpushare100",
-    "data/openb_pod_list_gpushare40",
-    "data/openb_pod_list_gpushare60",
-    "data/openb_pod_list_gpushare80",
+#    "data/openb_pod_list_gpushare100",
+#    "data/openb_pod_list_gpushare40",
+#    "data/openb_pod_list_gpushare60",
+#    "data/openb_pod_list_gpushare80",
     # GPU-constrained traces
-    "data/openb_pod_list_gpuspec10",
-    "data/openb_pod_list_gpuspec20",
-    "data/openb_pod_list_gpuspec25",
-    "data/openb_pod_list_gpuspec33",
+#    "data/openb_pod_list_gpuspec10",
+#    "data/openb_pod_list_gpuspec20",
+#    "data/openb_pod_list_gpuspec25",
+#    "data/openb_pod_list_gpuspec33",
     # multi-GPU traces
-    "data/openb_pod_list_multigpu20",
-    "data/openb_pod_list_multigpu30",
-    "data/openb_pod_list_multigpu40",
-    "data/openb_pod_list_multigpu50",
+#    "data/openb_pod_list_multigpu20",
+#    "data/openb_pod_list_multigpu30",
+#    "data/openb_pod_list_multigpu40",
+#    "data/openb_pod_list_multigpu50",
 ]
 
 AllMethodList = [
     # Experiments with only one active scoring plugin.
-    ["01", "Random", "random", "<none>", "<none>"],
-    ["02", "DotProd", "best", "merge", "max"],
-    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
-    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
-    ["05", "BestFit", "<none>", "<none>", "<none>"],
-    ["06", "FGD", "<self>", "share", "max"],
-    ["07", "PWR", "<self>", "share", "max"],
+#    ["01", "Random", "random", "<none>", "<none>"],
+#    ["02", "DotProd", "best", "merge", "max"],
+#    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
+#    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
+#    ["05", "BestFit", "<none>", "<none>", "<none>"],
+#    ["06", "FGD", "<self>", "share", "max"],
+#    ["07", "PWR", "<self>", "share", "max"],
     # Experiments with linear combinations of PWR and FGD scoring plugins.
-    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
-    ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
-    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
-    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
+#    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
+#    ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
+#    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
+#    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
+    # Experiments with PWREXP.
+    ["13", "PWREXP", "<self>", "share", "max"],
 ]
 
 AllMethodDict = {}

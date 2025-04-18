@@ -27,12 +27,14 @@ SCORE_POLICY_ABBR = {
     "BestFitScore":       "BestFit",
     "FGDScore":           "FGD",
     "PWRScore":           "PWR",
+    "PWREXPScore":        "PWREXP",
 }
 
 SCORE_PLUGINS_WITH_DIM_NORM_GPU_METHOD = [
     "DotProductScore", # dot product
     "FGDScore",        # FGD
     "PWRScore",        # PWR
+    "PWREXPScore",     # PWREXP
 ]
 SCORE_PLUGINS_WITH_PRE_FILTER = [
 ]
@@ -212,6 +214,7 @@ profiles:
           - name: BestFitScore
           - name: FGDScore
           - name: PWRScore
+          - name: PWREXPScore
           # 
           - name: ImageLocality
           - name: NodeAffinity
