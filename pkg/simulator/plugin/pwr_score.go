@@ -116,12 +116,12 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 		}
 	}
 
-	// Case where all the scores are 0: set them to 100 and return.
+	// Case where all the scores are equal: set them to 100 and return.
 	if minScore == maxScore {
 		log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): all the scores are equal.\n")
 
 		for i, _ := range scores {
-			scores[i].Score = 100
+			scores[i].Score = framework.MaxNodeScore
 			log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 		}
 
@@ -131,7 +131,7 @@ func (p *PWRScorePlugin) NormalizeScore(ctx context.Context, state *framework.Cy
 	// Normalize the scores to the range [0, 100].
 	for i, _ := range scores {
 		// Normalization formula: normalized_score = (score - minScore) / (0 - minScore) * 100
-		scores[i].Score = (scores[i].Score - minScore) * 100 / (maxScore - minScore)
+		scores[i].Score = (scores[i].Score - minScore) * framework.MaxNodeScore / (maxScore - minScore)
 		log.Debugf("DEBUG FRA, plugin.pwr_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 	}
 

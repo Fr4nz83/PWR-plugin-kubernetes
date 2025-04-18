@@ -107,36 +107,32 @@ func (plugin *PWREXPScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore() => Normalizing scores!\n")
 
-	// Find the minimum (largest negative) score. The more the negative, the worst.
-	// NOTE: The best (largest) possible score is known to be 0, i.e., no increase in expected power increase.
-	minScore := scores[0].Score
-	maxScore := minScore
-	for _, score := range scores {
-		if score.Score < minScore {
-			minScore = score.Score
+	// Find the minimum and maximum scores. A negative score indicates an actual decrease in expected power consumption variation of a node,
+	// and are thus better than positive scores.
+	minScore, maxScore := scores[0].Score, scores[0].Score
+	for i := range scores {
+		if scores[i].Score < minScore {
+			minScore = scores[i].Score
 		}
-		if score.Score > maxScore {
-			maxScore = score.Score
+		if scores[i].Score > maxScore {
+			maxScore = scores[i].Score
 		}
 	}
 
 	// Case where all the scores are equal: set them to 100 and return.
-	if minScore == maxScore {
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): all the scores are equal.\n")
-
-		for i, _ := range scores {
-			scores[i].Score = 100
+	if minScore != maxScore {
+		// Normalize the scores to the range [0, 100].
+		for i := range scores {
+			// Normalization formula: normalized_score = (score - minScore) / (maxScore - minScore) * 100
+			scores[i].Score = (scores[i].Score - minScore) * framework.MaxNodeScore / (maxScore - minScore)
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 		}
-
-		return framework.NewStatus(framework.Success)
-	}
-
-	// Normalize the scores to the range [0, 100].
-	for i, _ := range scores {
-		// Normalization formula: normalized_score = (score - minScore) / (0 - minScore) * 100
-		scores[i].Score = (scores[i].Score - minScore) * 100 / (maxScore - minScore)
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+	} else {
+		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): all the scores are equal, set everything to 100.\n")
+		for i := range scores {
+			scores[i].Score = framework.MaxNodeScore
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+		}
 	}
 
 	return framework.NewStatus(framework.Success)
@@ -154,13 +150,12 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 // and then measure how much the node's power consumption increases.
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
 
-	// Compute the node's expected power consumption increase PRIOR to hypotetically assigning podRes to the node.
+	// Compute the node's expected power consumption increase before hypotetically assigning podRes to the node.
 	// To this end, use the typical pods.
-	curr_exp_pwr_inc := CalcExpPWRIncNode(nodeRes, typicalPods)
+	curr_exp_pwr_inc := CalcExpPWRVarNode(nodeRes, typicalPods)
 
 	// Case 1 - the pod is GPU-share, i.e., it requests a fraction of the resources of a single GPU.
 	if podRes.IsGpuShare() {
-
 		// For each GPU in the node, check how the node power consumption would change by hypotetically assigning the considered pod to it.
 		// NOTE: for now, we are assuming that a GPU consumes max power even if it is minimally used.
 		score, gpuId = math.MinInt64, ""
@@ -173,8 +168,8 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 				newNodeRes.MilliCpuLeft -= podRes.MilliCpu
 				newNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
 
-				// Now compute the expected increase in power consumption using the typical pods, with the pod hypotetically scheduled to the node.
-				hyp_exp_pwr_inc := CalcExpPWRIncNode(newNodeRes, typicalPods)
+				// Now compute the expected variation in power consumption using the typical pods, with the pod hypotetically scheduled to the node.
+				hyp_exp_pwr_inc := CalcExpPWRVarNode(newNodeRes, typicalPods)
 				pwrScore := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
 				log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n",
 					nodeRes.NodeName, i, pwrScore)
@@ -204,19 +199,21 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 		// Subtract the node's resources that would be taken by the pod if scheduled on it.
 		newNodeRes, _ := nodeRes.Sub(podRes)
 
-		// Compute the expected increase in power consumption with the pod hypotetically allocated onto the node.
-		hyp_exp_pwr_inc := CalcExpPWRIncNode(newNodeRes, typicalPods)
-		pwrScore := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareFragExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
-			nodeRes.NodeName, pwrScore)
+		// Compute the expected variation in power consumption with the pod hypotetically allocated onto the node.
+		hyp_exp_pwr_inc := CalcExpPWRVarNode(newNodeRes, typicalPods)
+		// And now compute the difference before vs after hypotetically allocating the pod onto the node.
+		// NOTE: the larger the values, the better a node.
+		score := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
+		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
+			nodeRes.NodeName, score)
 
-		return pwrScore, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
+		return score, simontype.AllocateExclusiveGpuId(nodeRes, podRes)
 	}
 }
 
-// This function computes the expected power increase onto a node when considering the pods of a typical workload represented by 'typicalPods'.
-// TODO: this function needs to be tested.
-func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (expPwrIncrease float64) {
+// This function computes the expected power variation onto the node represented by 'nodeRes' when considering the pods
+// of a typical workload represented by 'typicalPods'.
+func CalcExpPWRVarNode(nodeRes simontype.NodeResource, typicalPods *simontype.TargetPodList) (expPwrVariation float64) {
 
 	// Local type.
 	type Pair struct {
@@ -270,7 +267,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 					// Now compute the increase in power consumption if allocating the current typical pod on this GPU.
 					tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
 					tmp_node_power := tmp_CPU_power + tmp_GPU_power
-					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Estimating pwr consumption node %s, GPU %d, with sharing-GPU pod: %f\n",
+					log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Estimating expected power variation on node %s, GPU %d, with sharing-GPU pod: %f\n",
 						tmpNodeRes.NodeName, i, tmp_node_power)
 
 					// ### Update the node's best score ### //
@@ -284,7 +281,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 
 			// Sanity check to see if we found a GPU that can accomodate the pod (shouldn't give error!).
 			if best_gpu_idx >= 0 {
-				log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated power consumption for node %s: selected GPU %d, power %f\n",
+				log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Final estimated expected power variation for node %s: selected GPU %d, power %f\n",
 					nodeRes.NodeName, best_gpu_idx, new_node_power)
 			} else {
 				log.Errorf("pod %v couldn't be allocated on node %s even if it had resources!\n", pod.TargetPodResource, nodeRes.NodeName)
@@ -298,7 +295,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 			// Compute the estimated power consumption of the node with the typical pod hypotetically allocated on it.
 			tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
 			new_node_power = tmp_CPU_power + tmp_GPU_power
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Power consumption of node %s with CPU-only or multi-GPU pod: %f\n",
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Estimated expected power variation of node %s with CPU-only or multi-GPU pod: %f\n",
 				nodeRes.NodeName, new_node_power)
 		}
 
@@ -308,6 +305,7 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 
 	// Step 3 - If some typical pods cannot be allocated on this node, renormalize the probabilities of the ones that can be.
 	if skipped {
+		log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRIncNode(): Renormalizing typical pods probabilities for node %s\n", nodeRes.NodeName)
 		sum_probs := 0.
 		for _, pod_info := range list_allocatable_pods {
 			sum_probs += pod_info.prob
@@ -317,14 +315,14 @@ func CalcExpPWRIncNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 		}
 	}
 
-	// Step 4 - Compute the expected power increase.
-	expPwrIncrease = 0.
+	// Step 4 - Compute the expected power variation.
+	expPwrVariation = 0.
 	for i := range list_allocatable_pods {
 		// Compute the increase in power consumption of the node if the pod is hypotetically scheduled on it.
-		expPwrIncrease += (list_allocatable_pods[i].pwr_inc - old_node_power) * list_allocatable_pods[i].prob
+		expPwrVariation += (list_allocatable_pods[i].pwr_inc - old_node_power) * list_allocatable_pods[i].prob
 	}
 
-	return expPwrIncrease
+	return expPwrVariation
 }
 
 // This function selects the best GPU(s) found in a given node. It essentially re-executes the allocateGpuIdBasedOnPWREXPScore function
