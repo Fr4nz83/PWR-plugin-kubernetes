@@ -145,9 +145,8 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 	test2 := utils.IsNodeAccessibleToPod(nodeRes, podRes) // Check if the node has the GPU type requested by the pod (if that's the case).
 
 	// Check if the node has enough GPU resources for the POD.
-	// NOTE: this check is avoided if a POD does not require GPU resources, as 'utils.CanNodeHostPodOnGpuMemory'
-	//       works only with pods that require GPU resources. In this case, we assume that the POD
-	//       can be hosted on the node, as it has enough CPU resources.
+	// NOTE: 'utils.CanNodeHostPodOnGpuMemory' works correctly only with pods that require GPU resources -- with no-GPU pods it erroneously
+	//       returns false. Thus, as a workaround we handle the non-GPU case in the first condition plus the OR.
 	test3 := (podRes.GpuNumber == 0) || utils.CanNodeHostPodOnGpuMemory(nodeRes, podRes)
 
 	return test1 && test2 && test3
@@ -307,11 +306,12 @@ func CalcExpPWRVarNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 			// Compute the estimated power consumption of the node with the typical pod hypotetically allocated on it.
 			tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
 			new_node_power = tmp_CPU_power + tmp_GPU_power
+
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Estimated power consumption for node %s with CPU-only or multi-GPU typical pod %s: %f\n",
 				nodeRes.NodeName, podRes.Repr(), new_node_power)
 		}
 
-		// Save information about the increase in power consumption with this typical pod.
+		// Save information about the node's power consumption with this typical pod added.
 		list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_inc: new_node_power, prob: podFreq})
 	}
 
@@ -320,19 +320,16 @@ func CalcExpPWRVarNode(nodeRes simontype.NodeResource, typicalPods *simontype.Ta
 	if skipped {
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Renormalizing typical pods probabilities for node %s\n", nodeRes.NodeName)
 		sum_probs := 0.
-		for _, pod_info := range list_allocatable_pods {
-			sum_probs += pod_info.prob
+		if len(list_allocatable_pods) > 0 {
+			for _, pod_info := range list_allocatable_pods {
+				sum_probs += pod_info.prob
+			}
+			for i := range list_allocatable_pods {
+				list_allocatable_pods[i].prob /= sum_probs
+			}
 		}
-		for i := range list_allocatable_pods {
-			list_allocatable_pods[i].prob /= sum_probs
-		}
+		log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Sum typical pods' probabilities for node %s: %f\n", nodeRes.NodeName, sum_probs)
 	}
-	// DEBUG - Check sum probabilities.
-	sum_probs := 0.
-	for i := range list_allocatable_pods {
-		sum_probs += list_allocatable_pods[i].prob
-	}
-	log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Sum typical pods' probabilities for node %s: %f\n", nodeRes.NodeName, sum_probs)
 
 	// Step 4 - Compute the expected power variation.
 	expPwrVariation = 0.
