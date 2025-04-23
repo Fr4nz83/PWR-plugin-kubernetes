@@ -107,7 +107,8 @@ func (plugin *PWREXPScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore() => Normalizing scores!\n")
 
-	// Find the minimum and maximum scores (recall, the higher, the better).
+	// Find the minimum and maximum scores.
+	// NOTE: all scores are >= 0.
 	minScore, maxScore := scores[0].Score, scores[0].Score
 	for i := range scores {
 		if scores[i].Score < minScore {
@@ -118,12 +119,14 @@ func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework
 		}
 	}
 
-	// Case 1: we need to normalize.
+	// Case 1: we need to normalize in [0,1]*100, and ensure that the lower the score, the better the node.
 	if minScore != maxScore {
-		// Normalize the scores to the range [0, 100].
 		for i := range scores {
-			// Normalization formula: normalized_score = (score - minScore) / (maxScore - minScore) * 100
-			scores[i].Score = (scores[i].Score - minScore) * framework.MaxNodeScore / (maxScore - minScore)
+			// Normalization formula: normalized_score = {1 - [(score - minScore) / (maxScore - minScore)]} * 100
+			var score float64 = float64(scores[i].Score-minScore) / float64(maxScore-minScore) // Normalize to [0, 1].
+			score = 1. - score                                                                 // Make lower scores the best.
+			score *= float64(framework.MaxNodeScore)
+			scores[i].Score = int64(score)
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 		}
 		// Case 2: all the scores are equal; we set them all to 100.
@@ -131,7 +134,6 @@ func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): all the scores are equal, set everything to 100.\n")
 		for i := range scores {
 			scores[i].Score = framework.MaxNodeScore
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 		}
 	}
 
@@ -156,10 +158,6 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 // and then measure how much the node's power consumption increases.
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
 
-	// Compute the node's expected power consumption increase before hypotetically assigning podRes to the node.
-	// To this end, use the typical pods.
-	curr_exp_pwr_inc := CalcExpPWRNode(nodeRes, typicalPods)
-
 	// Case 1 - the pod is GPU-share, i.e., it requests a fraction of the resources of a single GPU.
 	if podRes.IsGpuShare() {
 		// For each GPU in the node, check how the node power consumption would change by hypotetically assigning the considered pod to it.
@@ -176,8 +174,7 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 
 				// Now compute the expected variation in power consumption using the typical pods, with the pod hypotetically scheduled to the node.
 				// NOTE: the more positive the values, the better a node.
-				hyp_exp_pwr_inc := CalcExpPWRNode(newNodeRes, typicalPods)
-				pwrScore := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
+				pwrScore := int64(CalcExpPWRNode(newNodeRes, typicalPods))
 
 				log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %d\n",
 					nodeRes.NodeName, i, pwrScore)
@@ -209,8 +206,7 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 
 		// Compute the expected variation in power consumption with the pod hypotetically allocated onto the node.
 		// NOTE: the more positive the values, the better a node.
-		hyp_exp_pwr_inc := CalcExpPWRNode(newNodeRes, typicalPods)
-		score := int64(curr_exp_pwr_inc - hyp_exp_pwr_inc)
+		score := int64(CalcExpPWRNode(newNodeRes, typicalPods))
 
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Scoring node %s with CPU-only or multi-GPU pod: %d\n",
 			nodeRes.NodeName, score)
