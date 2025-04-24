@@ -239,9 +239,7 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 
 		// Check if the node can host this typical pod; if not, use the node's current power consumption (i.e., the node's power consumption
 		// wouldn't change, since this typical pod can't access this node) and skip to the next typical pod.
-		// if !isPodAllocatableToNode(nodeRes, podRes) {
-		// TODO: remove this 'if true' once the check is over!
-		if true {
+		if !isPodAllocatableToNode(nodeRes, podRes) {
 			curr_CPU_power, curr_GPU_power := nodeRes.GetEnergyConsumptionNode()
 			list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_node: curr_CPU_power + curr_GPU_power, prob: podFreq})
 			continue
