@@ -218,8 +218,8 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 
 	// Local type.
 	type Pair struct {
-		pwr_inc float64
-		prob    float64
+		pwr_node float64
+		prob     float64
 	}
 
 	// Step 1 - Scan the pods in the target workload, and save the increase in power consumption they would entail.
@@ -245,7 +245,7 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 		}
 
 		// Variable used to store the increase in power consumption of the node if the pod is hypotetically scheduled on it.
-		newExpPwr := math.MaxFloat64
+		newNodePwr := math.MaxFloat64
 
 		// Case 1 - the typical pod requests a fraction of the resources of a single GPU.
 		if podRes.IsGpuShare() {
@@ -268,9 +268,9 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 						tmpNodeRes.NodeName, i, podRes.Repr(), tmp_node_power)
 
 					// ### Update the node's best score ### //
-					if (best_gpu_idx == -1) || (tmp_node_power < newExpPwr) {
+					if (best_gpu_idx == -1) || (tmp_node_power < newNodePwr) {
 						best_gpu_idx = i
-						newExpPwr = tmp_node_power
+						newNodePwr = tmp_node_power
 					}
 				}
 			}
@@ -287,43 +287,47 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 
 			// Compute the estimated power consumption of the node with the current typical pod hypotetically allocated on it.
 			tmp_CPU_power, tmp_GPU_power := tmpNodeRes.GetEnergyConsumptionNode()
-			newExpPwr = tmp_CPU_power + tmp_GPU_power
+			newNodePwr = tmp_CPU_power + tmp_GPU_power
 
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Estimated power consumption for node %s with CPU-only or multi-GPU typical pod %s: %f\n",
-				nodeRes.NodeName, podRes.Repr(), newExpPwr)
+				nodeRes.NodeName, podRes.Repr(), newNodePwr)
 		}
 
 		// Save information about the node's power consumption with this typical pod added.
-		list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_inc: newExpPwr, prob: podFreq})
+		list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_node: newNodePwr, prob: podFreq})
 	}
 
 	// Step 2 - If some typical pods cannot be allocated on this node, renormalize the probabilities of the ones that can be.
 	// TODO: deal with case in which no typical pod can be allocated on the node.
 	if skipped {
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Renormalizing typical pods probabilities for node %s\n", nodeRes.NodeName)
-
-		sum_probs := 0.
 		// Case 1: there is at least one typical pod that can be allocated on this node: renormalize the probabilities.
 		if len(list_allocatable_pods) > 0 {
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Renormalizing typical pods probabilities for node %s\n", nodeRes.NodeName)
+
+			sum_probs := 0.
 			for _, pod_info := range list_allocatable_pods {
 				sum_probs += pod_info.prob
 			}
 			for i := range list_allocatable_pods {
 				list_allocatable_pods[i].prob /= sum_probs
 			}
+
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Sum typical pods' probabilities for node %s: %f\n", nodeRes.NodeName, sum_probs)
 		} else {
 			// Case 2: If no typical pod can be allocated on this node, the expected power consumption will be the current one.
 			old_CPU_power, old_GPU_power := nodeRes.GetEnergyConsumptionNode()
 			expPwr = old_CPU_power + old_GPU_power
-			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): No typical pod can be allocated on node %s\n", nodeRes.NodeName)
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): No typical pod can be allocated on node %s. Using current power consumption: %f\n",
+				nodeRes.NodeName, expPwr)
 		}
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Sum typical pods' probabilities for node %s: %f\n", nodeRes.NodeName, sum_probs)
 	}
 
 	// Step 3 - Compute the expected power consumption of the node with the typical pods.
 	for i := range list_allocatable_pods {
-		expPwr += list_allocatable_pods[i].pwr_inc * list_allocatable_pods[i].prob
+		expPwr += list_allocatable_pods[i].pwr_node * list_allocatable_pods[i].prob
 	}
+
+	log.Debugf("DEBUG FRA, plugin.pwrexp_score.CalcExpPWRVarNode(): Final expected power consumption for node %s: %f\n", nodeRes.NodeName, expPwr)
 
 	return expPwr
 }
