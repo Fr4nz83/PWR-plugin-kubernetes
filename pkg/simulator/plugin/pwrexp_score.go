@@ -58,41 +58,31 @@ func (plugin *PWREXPScorePlugin) Score(ctx context.Context, state *framework.Cyc
 	// log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
 	//	nodeName, p.Name, pod_GPU_type)
 
-	// Step 1 - Check if the considered pod does not request any resource -- in this case we return the maximum score (100) and a success status.
-	// "PodRequestsAndLimits()" returns a dictionary of all defined resources summed up for all containers of the pod.
-	// If pod overhead is non-nil, the pod overhead is added to the total container resource requests and to the
-	// total container limits which have a non-zero quantity.
-	// NOTE: we deactivated this check, and handle this case in the generic code at step 4.
-	// if podReq, _ := resourcehelper.PodRequestsAndLimits(p); len(podReq) == 0 {
-	// 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => the pod does not request any resource!\n")
-	//	return 0, framework.NewStatus(framework.Success)
-	// }
-
-	// Step 2 - Retrieves the resources of the node specified by nodeName.
+	// Step 1 - Retrieves the resources of the node specified by nodeName.
 	nodeResPtr := utils.GetNodeResourceViaHandleAndName(plugin.handle, nodeName)
 	// Check if "GetNodeResourceViaHandleAndName" failed to retrieve the node's resources, possibly due to the node not being found or some other error.
 	// In this case, we return the minimum node score and an error status.
 	// NOTE: in a simulation, we should never enter the if below. In any case, return the largest negative int64, which represents the largest
 	// 		 possible increase in expected power consumption (and thus maximally penalize this node).
 	if nodeResPtr == nil {
-		return int64(math.MinInt64), framework.NewStatus(framework.Error, fmt.Sprintf("failed to get nodeRes(%s)\n", nodeName))
+		return int64(math.MaxInt64), framework.NewStatus(framework.Error, fmt.Sprintf("failed to get nodeRes(%s)\n", nodeName))
 	}
 	nodeRes := *nodeResPtr
 
-	// Step 3 - Retrieve the resources requested by the pod, and check if the currently considered node is suitable for the pod, i.e.,
+	// Step 2 - Retrieve the resources requested by the pod, and check if the currently considered node is suitable for the pod, i.e.,
 	// the node has enough resources to accomodate the pod, and the GPU type requested by the pod is present on the node.
 	// NOTE: in theory we should never enter this if block, as the Filter plugin removes the nodes that fall in this case.
 	//       In any case, we return the largest negative int64, which represents the largest possible increase in expected power consumption.
 	podRes := utils.GetPodResource(p)
 	if !utils.IsNodeAccessibleToPod(nodeRes, podRes) {
-		return int64(math.MinInt64), framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
+		return int64(math.MaxInt64), framework.NewStatus(framework.Error, fmt.Sprintf("Node (%s) %s does not match GPU type request of pod %s\n", nodeName, nodeRes.Repr(), podRes.Repr()))
 	}
 
 	// log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => Resources requested from pod: %+v\n", podRes)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => Resources offered by node: %+v\n", nodeRes)
 	// log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => typical pods %+v\n", plugin.typicalPods)
 
-	// Step 4 - compute the score of a node w.r.t. the considered pod.
+	// Step 3 - compute the score of a node w.r.t. the considered pod.
 	//			In this case, the score is calculated based on how much the GPU fragmentation of a node would change IF we hypotetically
 	//		    schedule the pod on it -- the more the increase, the worst the score.
 	score, _ := calculatePWREXPShareExtendScore(nodeRes, podRes, plugin.typicalPods)
@@ -163,13 +153,17 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Old expected power consumption for node %s when scoring for pod %v: %f\n",
 		nodeRes.NodeName, podRes.Repr(), oldExpPwr)
 
+	// Initialize variable that will store the expected power consumption of the node with the pod hypotetically scheduled on it.
+	newExpPwr := math.Inf(1)
+
+	// Initialize variable that will store the IDs of the GPU that can hypotetically accomodate the pod.
+	gpuId = ""
+
 	// Step 2 - Compute the expected power consumption of 'nodeRes' AFTER hypotetically scheduling 'podRes' on it.
 	// Case 1 - pod is GPU-share, i.e., it requests a fraction, i.e. (0,1), of the resources of a single GPU.
 	if podRes.IsGpuShare() {
 		// For each GPU in the node, check how the node's expected power consumption would change by hypotetically assigning the considered pod to it.
 		// NOTE: for now, we are assuming that a GPU consumes max power even if it is minimally used.
-		newExpPwr := math.Inf(1)
-		gpuId = ""
 		for i := range nodeRes.MilliGpuLeftList {
 
 			// The considered GPU within the node has enough GPU-shared resources to accomodate the pod.
@@ -188,16 +182,12 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 				// ### Update the node's best score ### //
 				if tmpExpPwr < newExpPwr {
 					newExpPwr = tmpExpPwr
-					gpuId = strconv.Itoa(i)
+					gpuId = strconv.Itoa(i) // Save the ID of the GPU that can hypotetically accomodate the pod.
 				}
 			}
 		}
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): New expected power consumption for node %s, selected GPU %s, when scoring for sharing-GPU pod %v: %f\n",
 			nodeRes.NodeName, gpuId, podRes.Repr(), newExpPwr)
-
-		score = int64(newExpPwr - oldExpPwr)
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with GPU-sharing pod %v: %d\n",
-			nodeRes.NodeName, gpuId, podRes.Repr(), score)
 
 		// Case 2 - the pod requests no GPU (CPU only), or exactly one GPU, or multiple GPUs.
 	} else {
@@ -205,17 +195,18 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 		newNodeRes, _ := nodeRes.Sub(podRes)
 
 		// Compute the expected variation in power consumption with the pod hypotetically allocated onto the node.
-		newExpPwr := CalcExpPWRNode(newNodeRes, typicalPods)
+		newExpPwr = CalcExpPWRNode(newNodeRes, typicalPods)
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): New expected power consumption for node %s when scoring for CPU-only or multi-GPU pod %v: %f\n",
 			nodeRes.NodeName, podRes.Repr(), newExpPwr)
 
-		// Compute the final score.
-		score = int64(newExpPwr - oldExpPwr)
+		// Save the IDs of the GPUs that are hypotetically allocated to the pod.
 		gpuId = simontype.AllocateExclusiveGpuId(nodeRes, podRes)
-
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with CPU-only or multi-GPU pod %v: %d\n",
-			nodeRes.NodeName, gpuId, podRes.Repr(), score)
 	}
+
+	// Compute the final score.
+	score = int64(newExpPwr - oldExpPwr)
+	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with GPU-sharing pod %v: %d\n",
+		nodeRes.NodeName, gpuId, podRes.Repr(), score)
 
 	return score, gpuId
 }
@@ -308,5 +299,6 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 func allocateGpuIdBasedOnPWREXPScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, _ simontype.GpuPluginCfg, typicalPods *simontype.TargetPodList) (gpuId string) {
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.allocateGpuIdBasedOnPWREXPScore() => Scoring node %s w.r.t. pod!\n", nodeRes.NodeName)
 	_, gpuId = calculatePWREXPShareExtendScore(nodeRes, podRes, typicalPods)
+
 	return gpuId
 }
