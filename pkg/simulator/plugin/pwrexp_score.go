@@ -114,7 +114,7 @@ func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework
 		for i := range scores {
 			// Normalization formula: normalized_score = {1 - [(score - minScore) / (maxScore - minScore)]} * 100
 			var score float64 = float64(scores[i].Score-minScore) / float64(maxScore-minScore) // Normalize to [0, 1].
-			score = 1. - score                                                                 // Make lower scores the better ones.
+			// score = 1. - score                                                                 // Make lower scores the better ones.
 			score *= float64(framework.MaxNodeScore)
 			scores[i].Score = int64(score)
 			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
@@ -204,7 +204,7 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	}
 
 	// Compute the final score.
-	score = int64(newExpPwr - oldExpPwr)
+	score = int64(oldExpPwr - newExpPwr)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with GPU-sharing pod %v: %d\n",
 		nodeRes.NodeName, gpuId, podRes.Repr(), score)
 
@@ -230,7 +230,8 @@ func CalcExpPWRNode(nodeRes simontype.NodeResource, typicalPods *simontype.Targe
 
 		// Check if the node can host this typical pod; if not, use the node's current power consumption (i.e., the node's power consumption
 		// wouldn't change, since this typical pod can't access this node) and skip to the next typical pod.
-		if !isPodAllocatableToNode(nodeRes, podRes) {
+		// if !isPodAllocatableToNode(nodeRes, podRes) {
+		if true {
 			curr_CPU_power, curr_GPU_power := nodeRes.GetEnergyConsumptionNode()
 			list_allocatable_pods = append(list_allocatable_pods, Pair{pwr_node: curr_CPU_power + curr_GPU_power, prob: podFreq})
 			continue
