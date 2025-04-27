@@ -146,7 +146,8 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
 
 	// Step 1 - Compute the expected power consumption of 'nodeRes' BEFORE hypotetically scheduling 'podRes' on it.
-	oldExpPwr := CalcExpPWRNode(nodeRes, typicalPods)
+	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
+	oldExpPwr := old_CPU_energy + old_GPU_energy
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Old expected power consumption for node %s when scoring for pod %v: %f\n",
 		nodeRes.NodeName, podRes.Repr(), oldExpPwr)
 
@@ -171,7 +172,8 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 				newNodeRes.MilliGpuLeftList[i] -= podRes.MilliGpu
 
 				// Now compute the expected variation in power consumption using the typical pods, with the pod hypotetically scheduled to the node.
-				tmpExpPwr := CalcExpPWRNode(newNodeRes, typicalPods)
+				tmp_CPU_energy, tmp_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
+				tmpExpPwr := tmp_CPU_energy + tmp_GPU_energy
 
 				// log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Scoring node %s, GPU %d, with sharing-GPU pod: %f\n",
 				//	nodeRes.NodeName, i, tmpExpPwr)
@@ -192,7 +194,8 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 		newNodeRes, _ := nodeRes.Sub(podRes)
 
 		// Compute the expected variation in power consumption with the pod hypotetically allocated onto the node.
-		newExpPwr = CalcExpPWRNode(newNodeRes, typicalPods)
+		tmp_CPU_energy, tmp_GPU_energy := newNodeRes.GetEnergyConsumptionNode()
+		newExpPwr = tmp_CPU_energy + tmp_GPU_energy
 		log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): New expected power consumption for node %s when scoring for CPU-only or multi-GPU pod %v: %f\n",
 			nodeRes.NodeName, podRes.Repr(), newExpPwr)
 
