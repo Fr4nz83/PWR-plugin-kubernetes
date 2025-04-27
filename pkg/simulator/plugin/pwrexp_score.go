@@ -53,9 +53,9 @@ func (plugin *PWREXPScorePlugin) Score(ctx context.Context, state *framework.Cyc
 		} else {
 			pod_GPU_type = "NONE"
 		}
-	}*/
-	// log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
-	//	nodeName, p.Name, pod_GPU_type)
+	}
+	log.Debugf("DEBUG FRA, plugin.pwrexp_score.Score() => Scoring node %s w.r.t. pod %s (requested GPU: %s)!\n",
+		nodeName, p.Name, pod_GPU_type)*/
 
 	// Step 1 - Retrieves the resources of the node specified by nodeName.
 	nodeResPtr := utils.GetNodeResourceViaHandleAndName(plugin.handle, nodeName)
@@ -94,34 +94,36 @@ func (plugin *PWREXPScorePlugin) ScoreExtensions() framework.ScoreExtensions {
 }
 
 func (p *PWREXPScorePlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
-	// Find the minimum score, as the maximum score is known to be 0
-	minScore := scores[0].Score
-	maxScore := minScore
-	for _, score := range scores {
-		if score.Score < minScore {
-			minScore = score.Score
+	log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore() => Normalizing scores!\n")
+
+	// Find the minimum and maximum scores.
+	minScore, maxScore := scores[0].Score, scores[0].Score
+	for i := range scores {
+		// log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): %d-th score: %d\n", i, scores[i].Score)
+		if scores[i].Score < minScore {
+			minScore = scores[i].Score
 		}
-		if score.Score > maxScore {
-			maxScore = score.Score
+		if scores[i].Score > maxScore {
+			maxScore = scores[i].Score
 		}
 	}
 
-	// Case where all the scores are equal: set them to 100 and return.
-	if minScore == maxScore {
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): all the scores are equal.\n")
-
-		for i, _ := range scores {
+	// Case 1: we need to normalize in [0,1]*100, and ensure that the lower the score, the better the node.
+	if minScore != maxScore {
+		for i := range scores {
+			// Normalization formula: normalized_score = {1 - [(score - minScore) / (maxScore - minScore)]} * 100
+			var score float64 = float64(scores[i].Score-minScore) / float64(maxScore-minScore) // Normalize to [0, 1].
+			score = 1. - score                                                                 // Make lower scores the better ones.
+			score *= float64(framework.MaxNodeScore)
+			scores[i].Score = int64(score)
+			log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
+		}
+		// Case 2: all the scores are equal; set them all to 100.
+	} else {
+		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): all the scores are equal, set everything to 100.\n")
+		for i := range scores {
 			scores[i].Score = framework.MaxNodeScore
 		}
-
-		return framework.NewStatus(framework.Success)
-	}
-
-	// Normalize the scores to the range [0, 100].
-	for i, _ := range scores {
-		// Normalization formula: normalized_score = (score - minScore) / (0 - minScore) * 100
-		scores[i].Score = (scores[i].Score - minScore) * framework.MaxNodeScore / (maxScore - minScore)
-		log.Debugf("DEBUG FRA, plugin.pwrexp_score.NormalizeScore(): normalized score for node %s: %d\n", scores[i].Name, scores[i].Score)
 	}
 
 	return framework.NewStatus(framework.Success)
@@ -204,7 +206,7 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	}
 
 	// Compute the final score.
-	score = int64(oldExpPwr - newExpPwr)
+	score = int64(newExpPwr - oldExpPwr)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with GPU-sharing pod %v: %d\n",
 		nodeRes.NodeName, gpuId, podRes.Repr(), score)
 
