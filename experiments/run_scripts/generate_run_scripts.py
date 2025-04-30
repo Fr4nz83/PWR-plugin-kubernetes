@@ -14,20 +14,20 @@ FILELIST = [
 #    "data/openb_pod_list_cpu200",
 #    "data/openb_pod_list_cpu250",
     # GPU-sharing traces
-    "data/openb_pod_list_gpushare100",
-    "data/openb_pod_list_gpushare40",
-    "data/openb_pod_list_gpushare60",
-    "data/openb_pod_list_gpushare80",
+#    "data/openb_pod_list_gpushare100",
+#    "data/openb_pod_list_gpushare40",
+#    "data/openb_pod_list_gpushare60",
+#    "data/openb_pod_list_gpushare80",
     # GPU-constrained traces
-    "data/openb_pod_list_gpuspec10",
-    "data/openb_pod_list_gpuspec20",
-    "data/openb_pod_list_gpuspec25",
-    "data/openb_pod_list_gpuspec33",
+#    "data/openb_pod_list_gpuspec10",
+#    "data/openb_pod_list_gpuspec20",
+#    "data/openb_pod_list_gpuspec25",
+#    "data/openb_pod_list_gpuspec33",
     # multi-GPU traces
-    "data/openb_pod_list_multigpu20",
-    "data/openb_pod_list_multigpu30",
-    "data/openb_pod_list_multigpu40",
-    "data/openb_pod_list_multigpu50",
+#    "data/openb_pod_list_multigpu20",
+#    "data/openb_pod_list_multigpu30",
+#    "data/openb_pod_list_multigpu40",
+#    "data/openb_pod_list_multigpu50",
 ]
 
 AllMethodList = [
@@ -47,9 +47,9 @@ AllMethodList = [
 #    ["13", "PWR 25 FGD 975", "FGD", "share", "max"],
     # Experiments with PWREXP.
     ["14", "PWREXP", "<self>", "share", "max"],
-    ["15", "PWREXP 200 FGD 800", "FGD", "share", "max"],
-    ["16", "PWREXP 100 FGD 900", "FGD", "share", "max"],
-    ["17", "PWREXP 50 FGD 950", "FGD", "share", "max"],
+#    ["15", "PWREXP 200 FGD 800", "FGD", "share", "max"],
+#    ["16", "PWREXP 100 FGD 900", "FGD", "share", "max"],
+#    ["17", "PWREXP 50 FGD 950", "FGD", "share", "max"],
 ]
 
 AllMethodDict = {}
