@@ -148,10 +148,9 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
 
 	// Step 1 - Compute the current power consumption of 'nodeRes' BEFORE hypotetically scheduling 'podRes' on it.
-	old_CPU_energy, old_GPU_energy := nodeRes.GetEnergyConsumptionNode()
-	oldPwr := old_CPU_energy + old_GPU_energy
+	oldExpPwr := CalcExpPWRNode(nodeRes, typicalPods)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Current power consumption for node %s when scoring for pod %v: %f\n",
-		nodeRes.NodeName, podRes.Repr(), oldPwr)
+		nodeRes.NodeName, podRes.Repr(), oldExpPwr)
 
 	// Initialize variable that will store the expected power consumption of the node with the pod hypotetically scheduled on it.
 	newExpPwr := math.Inf(1)
@@ -206,7 +205,7 @@ func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simo
 	}
 
 	// Compute the final score.
-	score = int64(newExpPwr - oldPwr)
+	score = int64(newExpPwr - oldExpPwr)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Final score for node %s (GPUid %s) with GPU-sharing pod %v: %d\n",
 		nodeRes.NodeName, gpuId, podRes.Repr(), score)
 
