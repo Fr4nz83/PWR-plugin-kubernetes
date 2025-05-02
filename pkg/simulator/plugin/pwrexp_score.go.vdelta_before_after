@@ -148,8 +148,7 @@ func isPodAllocatableToNode(nodeRes simontype.NodeResource, podRes simontype.Pod
 func calculatePWREXPShareExtendScore(nodeRes simontype.NodeResource, podRes simontype.PodResource, typicalPods *simontype.TargetPodList) (score int64, gpuId string) {
 
 	// Step 1 - Compute the current power consumption of 'nodeRes' BEFORE hypotetically scheduling 'podRes' on it.
-	curr_CPU_power, curr_GPU_power := nodeRes.GetEnergyConsumptionNode()
-	oldExpPwr := curr_CPU_power + curr_GPU_power
+	oldExpPwr := CalcExpPWRNode(nodeRes, typicalPods)
 	log.Debugf("DEBUG FRA, plugin.pwrexp_score.calculatePWREXPShareExtendScore(): Current power consumption for node %s when scoring for pod %v: %f\n",
 		nodeRes.NodeName, podRes.Repr(), oldExpPwr)
 
