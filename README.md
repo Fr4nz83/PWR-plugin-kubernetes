@@ -39,7 +39,7 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 1. **translate the production traces from CSV to YAML** -- this is required to run the experiments with the simulator. To this end, read [README](data/README.md) under the `data` directory for more information.
 2. **execute the simulations conducted in the paper**. To this end, read Section 1 from the [README](experiments/README.md) under the `experiments` directory for more information. Please, be aware that the simulations can take a lot of time, depending on the amount of resources at your disposal.
-3. **extract and plot the simulations' results**. To this end, read Section 2 from the [README](experiments/README.md) under the `experiments` directory for more information.
+3. **extract and plot the simulations' results**. To this end, read Section 2 from the [README](experiments/README.md#2-analysis-of-the-simulations-results-part-of-the-text-adapted-from-the-original-repository) under the `experiments` directory for more information.
 
 
 ## Cite us
