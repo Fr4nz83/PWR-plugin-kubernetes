@@ -1,8 +1,8 @@
 # *Power- and Fragmentation-aware Online Scheduling for GPU Datacenters*
 
-This repository contains the code behind the paper "[Power- and Fragmentation-aware Online Scheduling for GPU Datacenters](https://arxiv.org/abs/2412.17484)". 
+This repository contains the code behind the paper "[Power- and Fragmentation-aware Online Scheduling for GPU Datacenters](https://arxiv.org/abs/2412.17484)" by F. Lettich (CNR-ISTI), E. Carlini (CNR-ISTI), F.M. Nardini (CNR-ISTI), R. Perego (CNR-ISTI), and S. Trani (CNR-ISTI). 
 
-This repository started as a fork of the repository behind the seminal paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" from Weng, Qizhen, et al., and now includes the customizations and code behind our paper's contributions, which is focused on minimizing power consumption alongside GPU fragmentation. 
+This repository started as a fork of the repository behind the seminal 2023 USENIX paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" from Weng, Qizhen, et al.; now, it includes the customizations and code behind our paper's contributions, which is focused on minimizing power consumption alongside GPU fragmentation. 
 
 More precisely, in this repository you will find:
 
