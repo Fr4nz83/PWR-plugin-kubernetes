@@ -1,6 +1,6 @@
 # *Power- and Fragmentation-aware Online Scheduling for GPU Datacenters*
 
-This repository contains the code behind the paper "[Power- and Fragmentation-aware Online Scheduling for GPU Datacenters](https://arxiv.org/abs/2412.17484)" by Francesco Lettich (CNR-ISTI), Emanuele Carlini (CNR-ISTI), Franco Maria Nardini (CNR-ISTI), Raffaele Perego (CNR-ISTI), and Salvatore Trani (CNR-ISTI). 
+This repository contains the code behind the paper "[Power- and Fragmentation-aware Online Scheduling for GPU Datacenters](https://arxiv.org/abs/2412.17484)" by Francesco Lettich (CNR-ISTI), Emanuele Carlini (CNR-ISTI), Franco Maria Nardini (CNR-ISTI), Raffaele Perego (CNR-ISTI), and Salvatore Trani (CNR-ISTI). The article has been accepted and presented to the **25th IEEE International Symposium on Cluster, Cloud, and Internet Computing (CCGrid 2025)** conference. The slides of the presentation can be found [here](CCGrid_2025/CCGrid%202025%20presentation.pdf).
 
 This repository started as a fork of the repository behind the seminal 2023 USENIX paper "[Beware of Fragmentation: Scheduling GPU-Sharing Workloads with Fragmentation Gradient Descent](https://www.usenix.org/system/files/atc23-weng.pdf)" from Weng, Qizhen, et al.; now, it includes the customizations and code behind our paper's contributions, which is focused on minimizing power consumption alongside GPU fragmentation. 
 
@@ -44,4 +44,4 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 ## Cite us
 
-The article has been accepted to the **25th IEEE International Symposium on Cluster, Cloud, and Internet Computing (CCGrid 2025)** conference. Stay tuned for future updates!
+Stay tuned for the final bibtex entry!
