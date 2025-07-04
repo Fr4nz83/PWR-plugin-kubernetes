@@ -46,4 +46,15 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 ## Cite us
 
-Final bibtex entry coming soon!
+```
+@INPROCEEDINGS{11044800,
+  author={Lettich, Francesco and Carlini, Emanuele and Nardini, Franco Maria and Perego, Raffaele and Trani, Salvatore},
+  booktitle={2025 IEEE 25th International Symposium on Cluster, Cloud and Internet Computing (CCGrid)}, 
+  title={Power- and Fragmentation-Aware Online Scheduling for GPU Datacenters}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={43-52},
+  keywords={Training;Measurement;Power demand;Costs;Power measurement;Processor scheduling;Graphics processing units;Resource management;Sustainable development;Optimization;GPU Datacenter;Power-aware Scheduling;GPU-sharing;GPU Fragmentation;Online Scheduling;Green Computing;Sustainable Computing},
+  doi={10.1109/CCGRID64434.2025.00015}}
+```
