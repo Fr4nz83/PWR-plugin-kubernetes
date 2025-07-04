@@ -48,8 +48,8 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 Please cite our **CCGRID 2025** article if you have found our contributions useful, or you have used them within your work.
 
-```
-@INPROCEEDINGS{11044800,
+```bibtex
+@inproceedings{lettich2025pwr,
   author={Lettich, Francesco and Carlini, Emanuele and Nardini, Franco Maria and Perego, Raffaele and Trani, Salvatore},
   booktitle={2025 IEEE 25th International Symposium on Cluster, Cloud and Internet Computing (CCGrid)}, 
   title={Power- and Fragmentation-Aware Online Scheduling for GPU Datacenters}, 
