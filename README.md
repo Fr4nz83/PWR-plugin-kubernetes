@@ -46,6 +46,8 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 ## Cite us
 
+Please cite our work if you have found it useful for your work.
+
 ```
 @INPROCEEDINGS{11044800,
   author={Lettich, Francesco and Carlini, Emanuele and Nardini, Franco Maria and Perego, Raffaele and Trani, Salvatore},
