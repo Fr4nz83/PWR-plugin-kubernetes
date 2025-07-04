@@ -46,7 +46,7 @@ Then, to reproduce the experimental pipeline used in our paper, please follow th
 
 ## Cite us
 
-Please cite our work if you have found it useful for your work.
+Please cite our **CCGRID 2025** article if you have found our contributions useful, or you have used them within your work.
 
 ```
 @INPROCEEDINGS{11044800,
