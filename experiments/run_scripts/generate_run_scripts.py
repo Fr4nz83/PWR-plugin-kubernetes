@@ -1,9 +1,9 @@
 # Usage: python3 generate_run_scripts.py > run_scripts.sh
 
-DATE = "2024_0606" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
+DATE = "2025_0916" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
 REPEAT = 10 # Number of repeats for each experiment.
-PARALLEL_SIMULATIONS = 16 # Number of simulations that will be run in parallel.
+PARALLEL_SIMULATIONS = 6 # Number of simulations that will be run in parallel.
 
 FILELIST = [
     # Default trace
@@ -36,17 +36,17 @@ AllMethodList = [
 #    ["02", "DotProd", "best", "merge", "max"],
 #    ["03", "GpuClustering", "<none>", "<none>", "<none>"],
 #    ["04", "GpuPacking", "<none>", "<none>", "<none>"],
-#    ["05", "BestFit", "<none>", "<none>", "<none>"],
-#    ["06", "FGD", "<self>", "share", "max"],
-#    ["07", "PWR", "<self>", "share", "max"],
+    ["05", "BestFit", "<none>", "<none>", "<none>"],
+    ["06", "FGD", "<self>", "share", "max"],
+    ["07", "PWR", "<self>", "share", "max"],
     # Experiments with linear combinations of PWR and FGD scoring plugins.
 #    ["08", "PWR 500 FGD 500", "FGD", "share", "max"],
-#    ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
-#    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
-#    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
+    ["09", "PWR 200 FGD 800", "FGD", "share", "max"],
+    ["11", "PWR 100 FGD 900", "FGD", "share", "max"],
+    ["12", "PWR 50 FGD 950", "FGD", "share", "max"],
 #    ["13", "PWR 25 FGD 975", "FGD", "share", "max"],
     # Experiments with PWREXP.
-    ["14", "PWREXP", "<self>", "share", "max"],
+#    ["14", "PWREXP", "<self>", "share", "max"],
 #    ["15", "PWREXP 200 FGD 800", "FGD", "share", "max"],
 #    ["16", "PWREXP 100 FGD 900", "FGD", "share", "max"],
 #    ["17", "PWREXP 50 FGD 950", "FGD", "share", "max"],
