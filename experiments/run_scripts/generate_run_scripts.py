@@ -2,8 +2,8 @@
 
 DATE = "2025_0916" # Used as the folder name under experiments/ to hold all log results. To avoid collision of repeated experiments, may change date or append _v1, _v2, etc.
 REMARK = "Artifacts"
-REPEAT = 10 # Number of repeats for each experiment.
-PARALLEL_SIMULATIONS = 6 # Number of simulations that will be run in parallel.
+REPEAT = 100 # Number of repeats for each experiment.
+PARALLEL_SIMULATIONS = 12 # Number of simulations that will be run in parallel.
 
 FILELIST = [
     # Default trace
