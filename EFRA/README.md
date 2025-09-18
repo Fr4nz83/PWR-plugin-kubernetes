@@ -9,4 +9,4 @@ The ```EFRA``` folder contains all the material necessary to perform the simulat
 
 3. The user must copy the generated ```openb_pod_list_default``` folder into the ```data``` folder under the project's root directory.
 
-4. At this point, the user must follow the usual steps needed to prepare the execution of batches of simulations; we thus refer the reader to the documentation in the project's root folder.
+4. At this point, the user must follow the usual steps needed to prepare the execution of batches of simulations; we thus refer the reader to Section 1 from the [README](experiments/README.md) under the ```experiments``` directory in the project's root folder for more information.
